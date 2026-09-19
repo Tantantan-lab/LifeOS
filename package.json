@@ -19,7 +19,16 @@
     "db:ui": "docker compose --profile tools up -d db-ui",
     "db:migrate": "npm run db:migrate --workspace apps/web",
     "db:reset": "docker compose down && rm -rf .data/postgres && docker compose up -d db && npm run db:migrate && npm run seed",
-    "seed": "npm run seed --workspace apps/web"
+    "seed": "npm run seed --workspace apps/web",
+    "api:up": "docker compose up -d --build api",
+    "api:down": "docker compose stop api",
+    "api:logs": "docker compose logs -f api",
+    "sync": "docker compose exec api python -m app.sync --source all",
+    "sync:github": "docker compose exec api python -m app.sync --source github",
+    "sync:dry": "docker compose exec api python -m app.sync --source all --dry-run",
+    "insights": "docker compose exec api python -m app.insights --period week --print",
+    "ticktick:auth": "docker compose exec api python -m app.ticktick_auth",
+    "test:api": "docker compose exec api pytest -q"
   },
   "engines": {
     "node": ">=20.9.0"

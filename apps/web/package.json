@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx --env-file=.env.local --tsconfig ./tsconfig.json scripts/seed.ts",
+    "rls:check": "tsx --env-file=.env.local --tsconfig ./tsconfig.json scripts/rls-check.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "lucide-react": "^1.47.0",

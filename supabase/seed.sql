@@ -1,0 +1,9 @@
+-- LifeOS does NOT seed via this file.
+--
+-- Seeding is done by `npm run seed` (apps/web/scripts/seed.ts): it creates the
+-- owner auth user, upserts the catalog tables (profiles / metrics / data_sources
+-- / goals) and imports the deterministic 365-day event dataset from
+-- apps/web/src/data/generator.ts. See docs/data-model.md.
+--
+-- Keeping this file empty (and running `supabase db reset --no-seed`) avoids a
+-- second, divergent seed path.

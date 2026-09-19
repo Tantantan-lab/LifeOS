@@ -49,24 +49,32 @@ npm run dev         # dev server with hot reload
 ## Scripts
 
 ```bash
-npm run up         # docker compose up -d --build (web + db, full stack)
-npm run down       # docker compose down (stop everything, data preserved)
-npm run dev        # dev server on the host (http://localhost:3000)
-npm run build      # production build (data routes are dynamic; DB not needed)
-npm run start      # production server on the host (needs DB running)
-npm run lint       # ESLint
-npm run typecheck  # tsc --noEmit
-npm run db:up      # start the postgres container only (data preserved)
-npm run db:down    # stop the postgres container
-npm run db:ui      # adminer at http://127.0.0.1:8081 (on demand)
-npm run db:migrate # apply pending migrations
-npm run db:reset   # wipe + recreate + migrate + re-seed (destructive)
-npm run seed       # seed owner + events (idempotent)
+npm run up          # docker compose up -d --build (web + api + db, full stack)
+npm run down        # docker compose down (stop everything, data preserved)
+npm run dev         # dev server on the host (http://localhost:3000)
+npm run build       # production build (data routes are dynamic; DB not needed)
+npm run start       # production server on the host (needs DB running)
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+npm run db:up       # start the postgres container only (data preserved)
+npm run db:down     # stop the postgres container
+npm run db:ui       # adminer at http://127.0.0.1:8081 (on demand)
+npm run db:migrate  # apply pending migrations
+npm run db:reset    # wipe + recreate + migrate + re-seed (destructive)
+npm run seed        # seed the mock history (idempotent, never touches connector rows)
+npm run api:up      # build + start the api container
+npm run api:logs    # follow api logs
+npm run sync        # sync every connector (needs credentials in apps/api/.env)
+npm run sync:github # sync one connector
+npm run sync:dry    # print what WOULD be written (no DB writes)
+npm run insights    # generate the weekly AI insight (needs LLM_API_KEY)
+npm run ticktick:auth  # one-time TickTick OAuth
+npm run test:api    # pytest for the api (fixture-driven, no tokens needed)
 ```
 
 ## Status
 
 - **M1 (done)**: UI — Home, Contribution, Me vs Me, Goals + design system.
 - **M2 (done)**: database — one plain Postgres container (sub2api-style): users/events/goals/metrics/data_sources, seeded 365-day history, read path switched to the DB. Privacy = localhost-only binding + server-only credentials.
-- **M3 (next)**: manual input + FastAPI analytics API.
-- **M4+**: Connectors (GitHub, Health, Calendar, Vocabulary), AI insights, PWA.
+- **M3 (done)**: five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick — all official APIs), AI insights pipeline (DeepSeek, FACT/TREND/GAP/ACTION), real "today". Live syncs pending your credentials in `apps/api/.env`.
+- **M4 (next)**: manual input, more connectors (Bilibili, Hevy, …), reading minutes joining the learning goal.

@@ -50,22 +50,25 @@ structured summary, which keeps the LLM grounded in numbers.
 ## Monorepo layout
 
 ```
-compose.yaml        full stack in containers (sub2api-style): web + postgres:17,
+compose.yaml        full stack in containers (sub2api-style): web + api + postgres:17,
                     all ports bound to 127.0.0.1, data bind-mounted at .data/postgres
 apps/web            Next.js — UI; reads events via src/data/db.ts (pg Pool)
 apps/web/Dockerfile multi-stage build, standalone runner
-apps/web/scripts    migrate.ts + seed.ts (tsx)
-apps/api            FastAPI (M3 — joins the compose stack)
+apps/web/scripts    migrate.ts + seed.ts + cdp-check.cjs (tsx / node)
+apps/api            FastAPI — connector engine + AI insights (M3)
+apps/api/app        connectors/{github,weread,maimemo,ticktick}.py, sync CLI,
+                    analytics → llm → insights pipeline
+apps/api/scripts    — (auth helper lives in app/ticktick_auth.py)
 packages/ui         shared design system, extracted from apps/web (M4)
-packages/analytics  aggregations / trends / gap math (M3)
-packages/connectors importers (M4)
+packages/analytics  aggregations / trends / gap math (M4)
+packages/connectors importers (M4 — more sources)
 database/migrations PostgreSQL DDL, applied by scripts/migrate.ts
 docs                this directory
 ```
 
 ## Run modes
 
-- **Container mode**: `npm run up` — web + db both in Docker (2 containers),
+- **Container mode**: `npm run up` — web + api + db in Docker (3 containers),
   the sub2api deployment shape. `npm run down` stops everything.
 - **Dev mode**: `npm run db:up` + `npm run dev` — hot reload on the host,
   database in its container.
@@ -76,7 +79,8 @@ docs                this directory
 |---|---|---|
 | M1 | UI: Home / Contribution / Me vs Me / Goals + design system, deterministic mock data | ✅ done |
 | M2 | Database: users / events / goals / metrics / data_sources on one plain Postgres container (sub2api-style), seeded 365-day history, read path switched to the DB, private-by-default via localhost-only binding | ✅ done |
-| M3 | Manual input + FastAPI analytics API | next |
+| M3 | Five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick, all official APIs), AI insights pipeline (analytics summary → DeepSeek → FACT/TREND/GAP/ACTION), real "today" | ✅ done (live syncs pending the user's credentials) |
+| M4 | Manual input, more connectors (Bilibili video, Hevy, …), reading minutes join the learning goal | next |
 | M4 | Analytics: 7D / 30D / 90D / 365D + connectors foundation | |
 | M5 | GitHub connector — first automatic source | |
 | M6 | AI insights (weekly review) | |

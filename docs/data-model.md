@@ -34,17 +34,54 @@ Examples: `{study, study_minutes, 120, min, timer}` · `{health→sleep,
 sleep_minutes, 428, min, apple_health}` · `{coding, commits, 4, commits,
 github}` · `{english, vocabulary_review, 137, words, anki}`.
 
-## Metric catalog (current mock)
+## Metric catalog (M3: five-domain taxonomy)
 
-| Domain | metric | cadence | goal |
+Names are namespaced (`domain.thing.unit`). One rule governs every name:
+**same real-world quantity → same metric** (mock and real sources merge into
+one series); different quantity → different metric (never merge).
+
+| Domain | Metric | Written by | Goal |
 |---|---|---|---|
-| study | `study_minutes` | daily, 1–2 sessions | 120 min/day |
-| english | `vocabulary_review` | daily | 40 words/day |
-| english | `english_minutes` | daily | — |
-| english | `ielts_mock_band` | ~every 21 days | band walk 5.5 → 6.0 (+ 6.5 spike) |
-| fitness | `workout_session` | 2–3×/week, slot-based (Mon/Tue/Thu/Sat) | 3 sessions/week |
-| coding | `coding_commits` + `coding_minutes` | daily | 10 commits/week |
-| sleep | `sleep_minutes` | 1/day, attributed to wake date | 6.5–7.5h band |
+| learning | `learning.study.minutes` | mock (demo) | 120 min/day — primary |
+| learning | `learning.reading.minutes` | **weread** | 30 min/day (soft) |
+| learning | `learning.video.minutes` | reserved (bilibili) | — |
+| english | `english.words.reviewed` | mock + **maimemo** | 40 words/day — primary |
+| english | `english.minutes` | mock | — |
+| english | `english.ielts.mock.band` | mock | — |
+| coding | `coding.commits` | mock + **github** | 10 commits/week — primary |
+| coding | `coding.minutes` | mock | Me vs Me "Coding" row |
+| health | `health.sleep.minutes` | mock | 6.5–7.5h band — primary |
+| health | `health.workout.session` | mock (Hevy later) | 3 sessions/week |
+| productivity | `productivity.tasks.completed` | **ticktick** | 15 tasks/week — primary |
+| productivity | `productivity.focus.minutes` | reserved (no official API) | — |
+
+Heatmap domains: learning / english / coding / productivity. **Health is
+excluded** (sleep targets a band, not a floor). The "All" view averages
+only domains with data in the trailing 30 days.
+
+## Connector provenance (M3)
+
+- Mock history: `source ∈ {demo, timer, anki, hevy, apple_health, manual}`
+  and `event_id = {date}:{domain}:{metric}:{seq}` — the seed deletes and
+  re-inserts ONLY these (re-seeding never touches connector rows).
+- Connector rows: `event_id = conn:{source}:{metric}:{date}` — upsert on
+  conflict; a partial unique index enforces one row per
+  (user, domain, metric, day, source) for `event_id like 'conn:%'`.
+- `data_sources` records `connected` + `last_sync_at` per source; tokens
+  live ONLY in apps/api/.env (+ .tokens.json), never in the DB.
+- Seams: GitHub reports ~30 days only; TickTick has no focus-time
+  endpoint (productivity = tasks/day); Maimemo has no per-day history
+  (words bucket by most-recent-review date, today prefers the
+  authoritative progress endpoint).
+
+## Insights pipeline (M3)
+
+`analytics.py` computes a structured summary (period + 90d deltas, goal
+completion, per-domain `data_state`: has_real_data / mock_only / no_data
+via the conn: prefix) → prompt enforces FACT/TREND/GAP/ACTION + banned
+words + verbatim numbers → OpenAI-compatible LLM (DeepSeek default) →
+validated → upserted into `insights` (unique per user+period+period_start).
+The LLM never reads raw events and never presents demo numbers as real.
 
 ## Determinism (M1 mock)
 

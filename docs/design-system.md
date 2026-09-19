@@ -24,8 +24,9 @@ tokens (enforced by grep).
 | `--color-brand-strong` | `#4F46E5` | **button backgrounds only** (contrast rule) |
 | `--color-brand-soft` | `#1A1D3A` | subtle tinted fills |
 
-Domain colors (identity only): Study `#4F8CFF` · English `#A970FF` ·
-Fitness `#45D483` · Coding `#FF9F43` · Sleep `#7568FF`.
+Domain colors (identity only, M3 taxonomy): Learning `#4F8CFF` ·
+English `#A970FF` · Coding `#FF9F43` · Health `#45D483` ·
+Productivity `#2DD4BF` (teal).
 
 Trend colors (the ONLY colors allowed for change semantics):
 Improving `#45D483` · Stable `#A1A8B3` · Declining `#F07878`.
@@ -89,8 +90,8 @@ no big gradients. The product must stay quiet.
 - 5 levels: 0% / 1–25 / 25–50 / 50–80 / 80–100. Level 0 = Surface 2
   (an empty day is a cell, not a hole). Ramps = domain hue mixed into
   Surface 2 (oklab 22/45/72/100%); the All view uses the brand ramp.
-- Fitness/coding compare the trailing 7 days to their weekly goals.
-- Sleep is excluded — its target is a band, not a floor.
+- Coding/productivity compare the trailing 7 days to their weekly goals.
+- Health is excluded — sleep's target is a band, not a floor.
 - The legend caption always travels with the heatmap: "Intensity = % of
   that day's goal · capped at 100%".
 

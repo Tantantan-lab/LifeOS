@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone Node verification scripts (CJS by design):
+    "scripts/cdp-check.cjs",
   ]),
 ]);
 

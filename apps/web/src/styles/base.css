@@ -31,11 +31,11 @@
 /* `bg-[var(--hm-${domain}-${level})]` generate ZERO css. The data-*   */
 /* indirection below keeps the whole 5-domain ramp auditable here.     */
 /* ------------------------------------------------------------------ */
-.hm-grid[data-domain="study"] {
-  --hm-1: var(--hm-study-1);
-  --hm-2: var(--hm-study-2);
-  --hm-3: var(--hm-study-3);
-  --hm-4: var(--hm-study-4);
+.hm-grid[data-domain="learning"] {
+  --hm-1: var(--hm-learning-1);
+  --hm-2: var(--hm-learning-2);
+  --hm-3: var(--hm-learning-3);
+  --hm-4: var(--hm-learning-4);
 }
 .hm-grid[data-domain="english"] {
   --hm-1: var(--hm-english-1);
@@ -43,17 +43,17 @@
   --hm-3: var(--hm-english-3);
   --hm-4: var(--hm-english-4);
 }
-.hm-grid[data-domain="fitness"] {
-  --hm-1: var(--hm-fitness-1);
-  --hm-2: var(--hm-fitness-2);
-  --hm-3: var(--hm-fitness-3);
-  --hm-4: var(--hm-fitness-4);
-}
 .hm-grid[data-domain="coding"] {
   --hm-1: var(--hm-coding-1);
   --hm-2: var(--hm-coding-2);
   --hm-3: var(--hm-coding-3);
   --hm-4: var(--hm-coding-4);
+}
+.hm-grid[data-domain="productivity"] {
+  --hm-1: var(--hm-productivity-1);
+  --hm-2: var(--hm-productivity-2);
+  --hm-3: var(--hm-productivity-3);
+  --hm-4: var(--hm-productivity-4);
 }
 .hm-grid[data-domain="all"] {
   --hm-1: var(--hm-all-1);

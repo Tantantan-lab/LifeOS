@@ -4,15 +4,29 @@
  * types move to packages/analytics and stay identical.
  */
 
-export type Domain = "study" | "english" | "fitness" | "coding" | "sleep";
+export type Domain =
+  | "learning"
+  | "english"
+  | "coding"
+  | "health"
+  | "productivity";
 
-/** Domains that participate in the heatmap (sleep is excluded: its target is bidirectional). */
-export type HeatmapDomain = "study" | "english" | "fitness" | "coding";
+/**
+ * Domains that participate in the heatmap. Health is excluded by design:
+ * sleep's target is a band (not a floor) and health carries two unlike
+ * metrics (sleep + workout).
+ */
+export type HeatmapDomain = "learning" | "english" | "coding" | "productivity";
 
+/** "demo" = seeded mock history; the rest are real connectors. */
 export type Source =
+  | "demo"
   | "manual"
   | "timer"
   | "github"
+  | "weread"
+  | "maimemo"
+  | "ticktick"
   | "anki"
   | "apple_health"
   | "hevy";
@@ -70,10 +84,10 @@ export interface HeatmapDay {
   date: string;
   completionAll: number;
   levelAll: Level;
-  study: HeatmapDayCell;
+  learning: HeatmapDayCell;
   english: HeatmapDayCell;
-  fitness: HeatmapDayCell;
   coding: HeatmapDayCell;
+  productivity: HeatmapDayCell;
 }
 
 export type WindowKey = "30D" | "90D" | "1Y" | "Beginning";
@@ -85,8 +99,10 @@ export interface TrendPoint {
 }
 
 export interface VersusRow {
+  /** Stable row key from VERSUS_ROWS (metric identity, not domain). */
+  key: string;
   domain: Domain;
-  metricLabel: string;
+  label: string;
   thenLabel: string;
   nowLabel: string;
   unitLabel: string;
@@ -133,7 +149,10 @@ export interface GapItem {
 }
 
 export interface GoalRow {
+  /** Stable row key from GOAL_ROWS (metric identity, not domain). */
+  key: string;
   domain: Domain;
+  label: string;
   targetLabel: string;
   currentLabel: string;
   /** 0..1 completion vs goal. */
@@ -169,4 +188,15 @@ export interface HeatmapStats {
 export interface InsightPreview {
   title: string;
   body: string;
+}
+
+/** A stored AI insight (insights table). */
+export interface InsightRecord {
+  period: "week" | "month";
+  periodStart: string;
+  periodEnd: string;
+  provider: string;
+  model: string;
+  createdAt: string;
+  content: { fact: string; trend: string; gap: string; action: string };
 }

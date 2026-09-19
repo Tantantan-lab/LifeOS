@@ -13,7 +13,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { Pool } from "pg";
-import type { LifeEvent, Domain } from "@/data/types";
+import type { InsightRecord, LifeEvent, Domain } from "@/data/types";
 
 let pool: Pool | null = null;
 
@@ -90,6 +90,34 @@ function toLifeEvent(r: DbEventRow): LifeEvent {
     source: r.source,
     confidence: Number(r.confidence),
     metadata: r.metadata ?? {},
+  };
+}
+
+/** Latest stored AI insight for a period (null = not generated yet). */
+export async function getLatestInsight(
+  period: "week" | "month"
+): Promise<InsightRecord | null> {
+  await connection();
+  const userId = await resolveOwnerUserId();
+  const { rows } = await db().query(
+    `select period, period_start::text as period_start, period_end::text as period_end,
+            provider, model, created_at, content
+       from insights
+      where user_id = $1 and period = $2
+      order by period_start desc
+      limit 1`,
+    [userId, period]
+  );
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    period: r.period,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    provider: r.provider,
+    model: r.model,
+    createdAt: new Date(r.created_at).toISOString(),
+    content: r.content,
   };
 }
 

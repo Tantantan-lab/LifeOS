@@ -72,8 +72,8 @@ export default async function ContributionPage() {
           <ul className="mt-4 space-y-2.5 text-sm text-fg-secondary">
             <li>Intensity is completion against your daily goal — not raw volume.</li>
             <li>Capped at 100%: studying 16h is never darker than 8h.</li>
-            <li>Fitness and coding compare the trailing 7 days to their weekly goals.</li>
-            <li>Sleep is excluded: its target is a band, not a floor.</li>
+            <li>Coding and productivity compare the trailing 7 days to their weekly goals.</li>
+            <li>Health is excluded: sleep targets a band, not a floor.</li>
           </ul>
         </Panel>
       </div>

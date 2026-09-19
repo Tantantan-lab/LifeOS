@@ -4,7 +4,6 @@ import type { Domain, VersusRow } from "@/data/types";
 import { DomainChip } from "@/components/primitives/domain-chip";
 import { MetricDelta } from "@/components/primitives/metric-delta";
 import { Sparkline } from "@/components/primitives/sparkline";
-import { DOMAIN_META } from "@/data/constants";
 import { TREND_TEXT_CLASS } from "@/lib/domain-colors";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +43,7 @@ export function VersusTable({
             >
               <DomainChip
                 domain={row.domain}
-                label={DOMAIN_META[row.domain].label}
+                label={row.label}
               />
               <span className="num text-display font-medium text-fg-secondary">
                 {row.thenLabel}

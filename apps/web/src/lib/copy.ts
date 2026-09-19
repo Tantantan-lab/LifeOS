@@ -26,9 +26,13 @@ export function noLogged(label: string): string {
 export const NO_ENTRIES_TODAY = "No entries yet";
 
 export const SOURCE_LABELS: Record<Source, string> = {
+  demo: "Demo",
   manual: "Manual",
   timer: "Timer",
   github: "GitHub",
+  weread: "WeRead",
+  maimemo: "Maimemo",
+  ticktick: "TickTick",
   anki: "Anki",
   apple_health: "Apple Health",
   hevy: "Hevy",

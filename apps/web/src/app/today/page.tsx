@@ -14,7 +14,7 @@ export default function TodayPage() {
         milestone="M3"
         bullets={[
           "Timeline of every event logged today",
-          "Manual entry for study, English, fitness, coding",
+          "Manual entry for learning, English, coding, health",
           "Domain totals vs daily goals",
         ]}
       />

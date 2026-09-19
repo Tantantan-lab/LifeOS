@@ -14,7 +14,7 @@ import { TREND_TEXT_CLASS } from "@/lib/domain-colors";
 import { formatMonthDay } from "@/lib/format";
 import { formatCount } from "@/lib/format";
 
-const DURATION_DOMAINS = ["study", "coding", "sleep"];
+const DURATION_DOMAINS = ["learning", "coding", "health"];
 
 /**
  * Weekly rollups of the NOW window, colored by trend (never by domain),
@@ -52,7 +52,7 @@ export function TrendLine({ row }: { row: VersusRow }) {
               tickFormatter={formatValue}
             />
             <Tooltip
-              formatter={(value) => [formatValue(Number(value)), row.metricLabel]}
+              formatter={(value) => [formatValue(Number(value)), row.label]}
               contentStyle={{
                 background: "var(--color-surface-2)",
                 border: "1px solid var(--color-border)",

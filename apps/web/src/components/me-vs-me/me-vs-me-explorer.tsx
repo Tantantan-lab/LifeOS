@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Domain, MeVsMeWindow, WindowKey } from "@/data/types";
-import { DOMAIN_META, WINDOW_ORDER } from "@/data/constants";
+import { WINDOW_ORDER } from "@/data/constants";
 import { Panel } from "@/components/primitives/panel";
 import { SegmentedControl } from "@/components/primitives/segmented-control";
 import { SectionHeading } from "@/components/primitives/section-heading";
@@ -19,7 +19,7 @@ export function MeVsMeExplorer({
   windows: Record<WindowKey, MeVsMeWindow>;
 }) {
   const [key, setKey] = useState<WindowKey>("90D");
-  const [selected, setSelected] = useState<Domain>("study");
+  const [selected, setSelected] = useState<Domain>("learning");
 
   const win = windows[key];
   const row = win.rows.find((r) => r.domain === selected) ?? win.rows[0];
@@ -45,7 +45,7 @@ export function MeVsMeExplorer({
 
       <Panel>
         <SectionHeading
-          title={`${DOMAIN_META[row.domain].label} · ${win.nowRange}`}
+          title={`${row.label} · ${win.nowRange}`}
         />
         <TrendLine row={row} />
         <div className="mt-2 text-micro text-fg-muted">

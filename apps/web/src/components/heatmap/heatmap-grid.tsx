@@ -10,18 +10,18 @@ import { cn } from "@/lib/utils";
 
 const FILTER_LABEL: Record<HeatmapFilter, string> = {
   all: "Overall",
-  study: "Study",
+  learning: "Learning",
   english: "English",
-  fitness: "Fitness",
   coding: "Coding",
+  productivity: "Productivity",
 };
 
 const FILTER_UNIT: Record<HeatmapFilter, string> = {
   all: "",
-  study: "min",
+  learning: "min",
   english: "words",
-  fitness: "sessions",
   coding: "commits",
+  productivity: "tasks",
 };
 
 export function cellAriaLabel(day: HeatmapDay, domain: HeatmapFilter): string {

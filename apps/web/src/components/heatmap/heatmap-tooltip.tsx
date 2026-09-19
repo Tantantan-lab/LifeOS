@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 
 const LABEL: Record<HeatmapFilter, string> = {
   all: "Overall",
-  study: "Study",
+  learning: "Learning",
   english: "English",
-  fitness: "Fitness",
   coding: "Coding",
+  productivity: "Productivity",
 };
 
 const UNIT: Record<HeatmapFilter, string> = {
   all: "",
-  study: "min",
+  learning: "min",
   english: "words",
-  fitness: "sessions",
   coding: "commits",
+  productivity: "tasks",
 };
 
 /**
@@ -44,7 +44,7 @@ export function HeatmapTooltip({
     const pct = Math.round(day.completionAll * 100);
     valueLine = `${pct}%`;
     goalLine = "4-domain average";
-    sourceLine = "study · english · fitness · coding";
+    sourceLine = "learning · english · coding · productivity";
   } else {
     const meta = DOMAIN_META[domain];
     const cell = day[domain];

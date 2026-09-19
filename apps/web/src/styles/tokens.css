@@ -27,11 +27,11 @@
   --color-brand-soft: #1a1d3a;
 
   /* ---- domains (identity only — never used for trends) ---- */
-  --color-domain-study: #4f8cff;
+  --color-domain-learning: #4f8cff;
   --color-domain-english: #a970ff;
-  --color-domain-fitness: #45d483;
   --color-domain-coding: #ff9f43;
-  --color-domain-sleep: #7568ff;
+  --color-domain-health: #45d483;
+  --color-domain-productivity: #2dd4bf;
 
   /* ---- trends (the ONLY colors allowed for change semantics) ---- */
   --color-trend-up: #45d483;
@@ -63,29 +63,30 @@
 /* ---- heatmap ramps ----
    Level ramp = domain hue mixed into the empty surface (oklab, 22/45/72/100%).
    Level 0 is --hm-empty (Surface 2): just above the card surface, so an empty
-   day still reads as a cell rather than a hole. "All" uses the brand ramp. */
+   day still reads as a cell rather than a hole. "All" uses the brand ramp.
+   Health has no ramp — excluded from the heatmap by design. */
 :root {
   --hm-empty: #161b25;
 
-  --hm-study-1: color-mix(in oklab, #4f8cff 22%, #161b25);
-  --hm-study-2: color-mix(in oklab, #4f8cff 45%, #161b25);
-  --hm-study-3: color-mix(in oklab, #4f8cff 72%, #161b25);
-  --hm-study-4: #4f8cff;
+  --hm-learning-1: color-mix(in oklab, #4f8cff 22%, #161b25);
+  --hm-learning-2: color-mix(in oklab, #4f8cff 45%, #161b25);
+  --hm-learning-3: color-mix(in oklab, #4f8cff 72%, #161b25);
+  --hm-learning-4: #4f8cff;
 
   --hm-english-1: color-mix(in oklab, #a970ff 22%, #161b25);
   --hm-english-2: color-mix(in oklab, #a970ff 45%, #161b25);
   --hm-english-3: color-mix(in oklab, #a970ff 72%, #161b25);
   --hm-english-4: #a970ff;
 
-  --hm-fitness-1: color-mix(in oklab, #45d483 22%, #161b25);
-  --hm-fitness-2: color-mix(in oklab, #45d483 45%, #161b25);
-  --hm-fitness-3: color-mix(in oklab, #45d483 72%, #161b25);
-  --hm-fitness-4: #45d483;
-
   --hm-coding-1: color-mix(in oklab, #ff9f43 22%, #161b25);
   --hm-coding-2: color-mix(in oklab, #ff9f43 45%, #161b25);
   --hm-coding-3: color-mix(in oklab, #ff9f43 72%, #161b25);
   --hm-coding-4: #ff9f43;
+
+  --hm-productivity-1: color-mix(in oklab, #2dd4bf 22%, #161b25);
+  --hm-productivity-2: color-mix(in oklab, #2dd4bf 45%, #161b25);
+  --hm-productivity-3: color-mix(in oklab, #2dd4bf 72%, #161b25);
+  --hm-productivity-4: #2dd4bf;
 
   --hm-all-1: color-mix(in oklab, #6366f1 22%, #161b25);
   --hm-all-2: color-mix(in oklab, #6366f1 45%, #161b25);

@@ -8,19 +8,19 @@
 import type { Domain, Trend } from "@/data/types";
 
 export const DOMAIN_BG_CLASS: Record<Domain, string> = {
-  study: "bg-domain-study",
+  learning: "bg-domain-learning",
   english: "bg-domain-english",
-  fitness: "bg-domain-fitness",
   coding: "bg-domain-coding",
-  sleep: "bg-domain-sleep",
+  health: "bg-domain-health",
+  productivity: "bg-domain-productivity",
 };
 
 export const DOMAIN_TEXT_CLASS: Record<Domain, string> = {
-  study: "text-domain-study",
+  learning: "text-domain-learning",
   english: "text-domain-english",
-  fitness: "text-domain-fitness",
   coding: "text-domain-coding",
-  sleep: "text-domain-sleep",
+  health: "text-domain-health",
+  productivity: "text-domain-productivity",
 };
 
 export const TREND_TEXT_CLASS: Record<Trend, string> = {

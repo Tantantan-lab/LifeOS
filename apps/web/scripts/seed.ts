@@ -19,22 +19,28 @@ const CHUNK = 500;
 const OWNER_EMAIL = "owner@lifeos.local";
 
 const METRIC_ROWS = [
-  { metric: "study_minutes", domain: "study", label: "Study", unit: "min", value_kind: "minutes", aggregation: "sum" },
-  { metric: "vocabulary_review", domain: "english", label: "Vocabulary review", unit: "words", value_kind: "count", aggregation: "sum" },
-  { metric: "english_minutes", domain: "english", label: "English practice", unit: "min", value_kind: "minutes", aggregation: "sum" },
-  { metric: "ielts_mock_band", domain: "english", label: "IELTS mock", unit: "band", value_kind: "band", aggregation: "last" },
-  { metric: "workout_session", domain: "fitness", label: "Workout", unit: "session", value_kind: "session", aggregation: "sum" },
-  { metric: "coding_commits", domain: "coding", label: "Commits", unit: "commits", value_kind: "count", aggregation: "sum" },
-  { metric: "coding_minutes", domain: "coding", label: "Coding", unit: "min", value_kind: "minutes", aggregation: "sum" },
-  { metric: "sleep_minutes", domain: "sleep", label: "Sleep", unit: "min", value_kind: "minutes", aggregation: "avg" },
+  { metric: "learning.study.minutes", domain: "learning", label: "Study time", unit: "min", value_kind: "minutes", aggregation: "sum" },
+  { metric: "learning.reading.minutes", domain: "learning", label: "Reading (WeRead)", unit: "min", value_kind: "minutes", aggregation: "sum" },
+  { metric: "learning.video.minutes", domain: "learning", label: "Video", unit: "min", value_kind: "minutes", aggregation: "sum" },
+  { metric: "english.words.reviewed", domain: "english", label: "Words reviewed", unit: "words", value_kind: "count", aggregation: "sum" },
+  { metric: "english.minutes", domain: "english", label: "English practice", unit: "min", value_kind: "minutes", aggregation: "sum" },
+  { metric: "english.ielts.mock.band", domain: "english", label: "IELTS mock", unit: "band", value_kind: "band", aggregation: "last" },
+  { metric: "coding.commits", domain: "coding", label: "Commits", unit: "commits", value_kind: "count", aggregation: "sum" },
+  { metric: "coding.minutes", domain: "coding", label: "Coding", unit: "min", value_kind: "minutes", aggregation: "sum" },
+  { metric: "health.workout.session", domain: "health", label: "Workout", unit: "session", value_kind: "session", aggregation: "sum" },
+  { metric: "health.sleep.minutes", domain: "health", label: "Sleep", unit: "min", value_kind: "minutes", aggregation: "avg" },
+  { metric: "productivity.tasks.completed", domain: "productivity", label: "Tasks completed", unit: "tasks", value_kind: "count", aggregation: "sum" },
+  { metric: "productivity.focus.minutes", domain: "productivity", label: "Focus time", unit: "min", value_kind: "minutes", aggregation: "sum" },
 ] as const;
 
 const GOAL_ROWS = [
-  { domain: "study", metric: "study_minutes", period: "day", target_value: 120, label: "120 min/day" },
-  { domain: "english", metric: "vocabulary_review", period: "day", target_value: 40, label: "40 words/day" },
-  { domain: "fitness", metric: "workout_session", period: "week", target_value: 3, label: "3 sessions/week" },
-  { domain: "coding", metric: "coding_commits", period: "week", target_value: 10, label: "10 commits/week" },
-  { domain: "sleep", metric: "sleep_minutes", period: "day", target_value: 420, target_min: 390, target_max: 450, label: "6.5–7.5h band" },
+  { domain: "learning", metric: "learning.study.minutes", period: "day", target_value: 120, label: "120 min/day" },
+  { domain: "learning", metric: "learning.reading.minutes", period: "day", target_value: 30, label: "30 min/day (soft)" },
+  { domain: "english", metric: "english.words.reviewed", period: "day", target_value: 40, label: "40 words/day" },
+  { domain: "coding", metric: "coding.commits", period: "week", target_value: 10, label: "10 commits/week" },
+  { domain: "health", metric: "health.workout.session", period: "week", target_value: 3, label: "3 sessions/week" },
+  { domain: "health", metric: "health.sleep.minutes", period: "day", target_value: 420, target_min: 390, target_max: 450, label: "6.5–7.5h band" },
+  { domain: "productivity", metric: "productivity.tasks.completed", period: "week", target_value: 15, label: "15 tasks/week" },
 ] as const;
 
 /** Upsert-or-reuse the single owner (no auth system — one row, always). */
@@ -93,9 +99,12 @@ async function main() {
     );
   }
 
-  // 2. events: delete-then-insert per owner (idempotent)
+  // 2. events: delete-then-insert the MOCK dataset only.
+  //    event_id prefix is the provenance discriminator: mock rows are
+  //    `{date}:{domain}:{metric}:{seq}`, connector rows are `conn:...` —
+  //    a re-seed must NEVER wipe real connector data.
   const events = generateEvents();
-  await pool.query("delete from events where user_id = $1", [ownerId]);
+  await pool.query("delete from events where event_id not like 'conn:%'");
 
   const COLS = 10; // event_id,user_id,timestamp,domain,metric,value,unit,source,confidence,metadata
   for (let i = 0; i < events.length; i += CHUNK) {
@@ -117,8 +126,8 @@ async function main() {
     );
   }
 
-  // 3. self-verify
-  const { rows } = await pool.query("select count(*)::int as n from events where user_id = $1", [ownerId]);
+  // 3. self-verify (mock rows only)
+  const { rows } = await pool.query("select count(*)::int as n from events where event_id not like 'conn:%'");
   const count = rows[0].n;
   console.log(`events: ${count} rows / ${events.length} generated`);
   if (count !== events.length) throw new Error(`row count mismatch: ${count} !== ${events.length}`);

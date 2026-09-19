@@ -5,7 +5,6 @@ import { Panel } from "@/components/primitives/panel";
 import { DomainChip } from "@/components/primitives/domain-chip";
 import { MetricDelta } from "@/components/primitives/metric-delta";
 import { SectionHeading } from "@/components/primitives/section-heading";
-import { DOMAIN_META } from "@/data/constants";
 
 /** Top 3 movers of the last 30 days: THEN → NOW. */
 export function MeVsMeSummary({ window }: { window: MeVsMeWindow }) {
@@ -31,7 +30,7 @@ export function MeVsMeSummary({ window }: { window: MeVsMeWindow }) {
           <div key={row.domain} className="flex items-center gap-3">
             <DomainChip
               domain={row.domain}
-              label={DOMAIN_META[row.domain].label}
+              label={row.label}
               className="w-24 shrink-0"
             />
             <span className="num min-w-0 flex-1 truncate text-sm text-fg">

@@ -1,21 +1,33 @@
 import type { Domain, HeatmapDomain, Source, WindowKey } from "@/data/types";
 
 /**
- * Fixed anchor — NOT new Date(). Static prerendering would freeze "today"
- * into the HTML otherwise. M2 replaces this with request-time data.
- * 2026-09-19 is a Saturday; the dataset spans 2025-09-20 … 2026-09-19
- * (365 days), Sunday-aligned grid start = 2025-09-14 → 53 weeks × 7 = 371
- * cells with 6 leading blanks.
+ * M3 taxonomy: learning / english / coding / health / productivity.
+ * Metric catalog is namespaced (domain.thing.unit). One rule governs every
+ * name: same real-world quantity → same metric (mock and real sources merge
+ * into one series); different quantity → different metric (never merge).
  */
-export const ANCHOR_DATE = "2026-09-19";
+
+/**
+ * Last day of the MOCK dataset — used ONLY by generator.ts / seed.ts.
+ * Selectors use src/lib/today.ts (real today, Asia/Shanghai). Today equals
+ * this date at seed time, so mock numbers render identically on day one.
+ */
+export const MOCK_LAST_DATE = "2026-09-19";
+
+/** First day of the mock dataset; the heatmap grid is frozen to its Sunday. */
+export const DATASET_START = "2025-09-20";
+export const GRID_START = "2025-09-14";
 
 export const USER_ID = "user_local_001";
 
-/** FNV-1a seed for the deterministic generator. Chosen by sweep so the
- *  one-year story reads: study +36% / english improving / fitness stable /
- *  coding +39% — with a realistic last-30-days for every domain. */
+/**
+ * FNV-1a seed. streamKey is frozen to the LEGACY domain names so the
+ * deterministic hash streams never change — without this every rendered
+ * number shifts when a domain is renamed.
+ */
 export const SEED = 271828;
 
+export const TIMEZONE = "Asia/Shanghai";
 export const TIMEZONE_OFFSET = "+08:00";
 
 export interface DomainMeta {
@@ -25,99 +37,134 @@ export interface DomainMeta {
   /** Human label of the primary metric. */
   metricLabel: string;
   unitLabel: string;
-  /** Goal label shown on Goals / in tooltips. */
   goalLabel: string;
-  /** Daily goal in primary-metric units (for direct-ratio domains). */
   dayGoal: number;
-  /** "day" → today vs dayGoal. "trailing7" → sum over trailing 7 days vs weeklyGoal. */
+  /** "day" → today vs dayGoal. "trailing7" → trailing-7 sum vs weeklyGoal. */
   goalMode: "day" | "trailing7";
   weeklyGoal: number | null;
-  /** Sum over the window vs average per day. */
-  windowAggregation: "sum" | "avg";
-  /** Typical sources for generated events. */
+  /** Typical sources of the MOCK events (Today/tooltip provenance). */
   sources: Source[];
   confidences: number[];
 }
 
 export const DOMAIN_META: Record<Domain, DomainMeta> = {
-  study: {
-    label: "Study",
-    primaryMetric: "study_minutes",
-    metricLabel: "Study",
+  learning: {
+    label: "Learning",
+    primaryMetric: "learning.study.minutes",
+    metricLabel: "Study time",
     unitLabel: "/day",
     goalLabel: "120 min/day",
     dayGoal: 120,
     goalMode: "day",
     weeklyGoal: null,
-    windowAggregation: "avg",
     sources: ["timer"],
     confidences: [0.95],
   },
   english: {
     label: "English",
-    primaryMetric: "vocabulary_review",
-    metricLabel: "Vocabulary",
+    primaryMetric: "english.words.reviewed",
+    metricLabel: "Words reviewed",
     unitLabel: "/day",
     goalLabel: "40 words/day",
     dayGoal: 40,
     goalMode: "day",
     weeklyGoal: null,
-    windowAggregation: "avg",
     sources: ["anki"],
-    confidences: [0.95],
-  },
-  fitness: {
-    label: "Fitness",
-    primaryMetric: "workout_session",
-    metricLabel: "Workouts",
-    unitLabel: "/week",
-    goalLabel: "3 sessions/week",
-    dayGoal: 0,
-    goalMode: "trailing7",
-    weeklyGoal: 3,
-    windowAggregation: "sum",
-    sources: ["hevy"],
     confidences: [0.95],
   },
   coding: {
     label: "Coding",
-    primaryMetric: "coding_commits",
+    primaryMetric: "coding.commits",
     metricLabel: "Commits",
     unitLabel: "/week",
     goalLabel: "10 commits/week",
     dayGoal: 0,
     goalMode: "trailing7",
     weeklyGoal: 10,
-    windowAggregation: "sum",
-    sources: ["github"],
+    sources: ["demo"],
     confidences: [0.95],
   },
-  sleep: {
-    label: "Sleep",
-    primaryMetric: "sleep_minutes",
+  health: {
+    label: "Health",
+    primaryMetric: "health.sleep.minutes",
     metricLabel: "Sleep",
     unitLabel: "/night",
     goalLabel: "6.5–7.5h band",
     dayGoal: 420,
     goalMode: "day",
     weeklyGoal: null,
-    windowAggregation: "avg",
     sources: ["apple_health"],
+    confidences: [0.9],
+  },
+  productivity: {
+    label: "Productivity",
+    primaryMetric: "productivity.tasks.completed",
+    metricLabel: "Tasks completed",
+    unitLabel: "/week",
+    goalLabel: "15 tasks/week",
+    dayGoal: 0,
+    goalMode: "trailing7",
+    weeklyGoal: 15,
+    sources: ["demo"],
     confidences: [0.9],
   },
 };
 
+/**
+ * Heatmap domains — health is excluded by design: sleep's target is a band
+ * (not a floor), and health carries two unlike metrics (sleep + workout).
+ */
 export const HEATMAP_DOMAINS: HeatmapDomain[] = [
-  "study",
+  "learning",
   "english",
-  "fitness",
   "coding",
+  "productivity",
+];
+
+/** Me vs Me rows — metric-keyed; rows without data are filtered at render. */
+export const VERSUS_ROWS: {
+  key: string;
+  domain: Domain;
+  metric: string;
+  label: string;
+  aggregation: "sum" | "avg";
+  format: "duration" | "hours1" | "count";
+  unitLabel: string;
+}[] = [
+  { key: "study", domain: "learning", metric: "learning.study.minutes", label: "Study time", aggregation: "avg", format: "duration", unitLabel: "/day" },
+  { key: "reading", domain: "learning", metric: "learning.reading.minutes", label: "Reading", aggregation: "avg", format: "duration", unitLabel: "/day" },
+  { key: "words", domain: "english", metric: "english.words.reviewed", label: "Words reviewed", aggregation: "avg", format: "count", unitLabel: "/day" },
+  { key: "coding", domain: "coding", metric: "coding.minutes", label: "Coding", aggregation: "sum", format: "hours1", unitLabel: "" },
+  { key: "workout", domain: "health", metric: "health.workout.session", label: "Workouts", aggregation: "sum", format: "count", unitLabel: "sessions" },
+  { key: "sleep", domain: "health", metric: "health.sleep.minutes", label: "Sleep", aggregation: "avg", format: "duration", unitLabel: "/night" },
+  { key: "tasks", domain: "productivity", metric: "productivity.tasks.completed", label: "Tasks completed", aggregation: "sum", format: "count", unitLabel: "tasks" },
+];
+
+/** Goals rows — metric-keyed; the Goals page renders one card per row. */
+export const GOAL_ROWS: {
+  key: string;
+  domain: Domain;
+  metric: string;
+  targetLabel: string;
+  mode: "avg" | "weekly" | "band";
+  dayGoal: number;
+  weeklyGoal: number | null;
+  bandMin: number | null;
+  bandMax: number | null;
+}[] = [
+  { key: "study", domain: "learning", metric: "learning.study.minutes", targetLabel: "120 min/day", mode: "avg", dayGoal: 120, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "reading", domain: "learning", metric: "learning.reading.minutes", targetLabel: "30 min/day (soft)", mode: "avg", dayGoal: 30, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "words", domain: "english", metric: "english.words.reviewed", targetLabel: "40 words/day", mode: "avg", dayGoal: 40, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "commits", domain: "coding", metric: "coding.commits", targetLabel: "10 commits/week", mode: "weekly", dayGoal: 0, weeklyGoal: 10, bandMin: null, bandMax: null },
+  { key: "workout", domain: "health", metric: "health.workout.session", targetLabel: "3 sessions/week", mode: "weekly", dayGoal: 0, weeklyGoal: 3, bandMin: null, bandMax: null },
+  { key: "sleep", domain: "health", metric: "health.sleep.minutes", targetLabel: "6.5–7.5h band", mode: "band", dayGoal: 420, weeklyGoal: null, bandMin: 390, bandMax: 450 },
+  { key: "tasks", domain: "productivity", metric: "productivity.tasks.completed", targetLabel: "15 tasks/week", mode: "weekly", dayGoal: 0, weeklyGoal: 15, bandMin: null, bandMax: null },
 ];
 
 /**
  * Me vs Me windows. NOW and THEN are inclusive date ranges counting back
- * from ANCHOR_DATE. 1Y compares two 182-day halves because the dataset is
- * 365 days. The UI always prints the resolved ranges (docs/data-model.md).
+ * from today. 1Y compares two 182-day halves because the dataset is 365
+ * days. The UI always prints the resolved ranges (docs/data-model.md).
  */
 export const WINDOWS: Record<
   WindowKey,
@@ -138,41 +185,11 @@ export const WINDOW_ORDER: WindowKey[] = ["30D", "90D", "1Y", "Beginning"];
 export const TARGET_LABEL = "Overseas Engineer";
 
 export const SKILLS = [
-  {
-    skill: "Python",
-    score: 86,
-    target: 86,
-    weight: 0.2,
-    evidence: "12+ projects · daily driver",
-  },
-  {
-    skill: "Linux",
-    score: 80,
-    target: 84,
-    weight: 0.15,
-    evidence: "daily shell & server ops",
-  },
-  {
-    skill: "Docker",
-    score: 74,
-    target: 80,
-    weight: 0.15,
-    evidence: "containerized 8 apps",
-  },
-  {
-    skill: "Kubernetes",
-    score: 50,
-    target: 85,
-    weight: 0.25,
-    evidence: "CKA prep · week 3",
-  },
-  {
-    skill: "English",
-    score: 76,
-    target: 90,
-    weight: 0.25,
-    evidence: "IELTS mock 6.0 · 57 words/day",
-  },
+  { skill: "Python", score: 86, target: 86, weight: 0.2, evidence: "12+ projects · daily driver" },
+  { skill: "Linux", score: 80, target: 84, weight: 0.15, evidence: "daily shell & server ops" },
+  { skill: "Docker", score: 74, target: 80, weight: 0.15, evidence: "containerized 8 apps" },
+  { skill: "Kubernetes", score: 50, target: 85, weight: 0.25, evidence: "CKA prep · week 3" },
+  { skill: "English", score: 76, target: 90, weight: 0.25, evidence: "IELTS mock 6.0 · 57 words/day" },
 ] as const;
 
 /** Present in the gap list but not yet scored. */

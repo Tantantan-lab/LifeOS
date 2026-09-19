@@ -1,5 +1,4 @@
 import type { GoalRow } from "@/data/types";
-import { DOMAIN_META } from "@/data/constants";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { MetricDelta } from "@/components/primitives/metric-delta";
@@ -15,7 +14,7 @@ export function GoalCards({ goals }: { goals: GoalRow[] }) {
           <div className="flex items-center gap-2">
             <DomainDot domain={goal.domain} />
             <span className="text-sm text-fg-secondary">
-              {DOMAIN_META[goal.domain].label}
+              {goal.label}
             </span>
             <span className="ml-auto">
               <MetricDelta

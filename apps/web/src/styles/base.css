@@ -1,0 +1,84 @@
+/* Global base layer + component classes. Imported after tokens.css. */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.9375rem; /* 15px — body band */
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--color-brand) 35%, transparent);
+  }
+}
+
+@layer components {
+  /* Every metric number — tabular figures stop width jitter between renders. */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Heatmap ramp — fully static CSS.                                    */
+/* Tailwind scans source as plain text, so dynamic class names like    */
+/* `bg-[var(--hm-${domain}-${level})]` generate ZERO css. The data-*   */
+/* indirection below keeps the whole 5-domain ramp auditable here.     */
+/* ------------------------------------------------------------------ */
+.hm-grid[data-domain="study"] {
+  --hm-1: var(--hm-study-1);
+  --hm-2: var(--hm-study-2);
+  --hm-3: var(--hm-study-3);
+  --hm-4: var(--hm-study-4);
+}
+.hm-grid[data-domain="english"] {
+  --hm-1: var(--hm-english-1);
+  --hm-2: var(--hm-english-2);
+  --hm-3: var(--hm-english-3);
+  --hm-4: var(--hm-english-4);
+}
+.hm-grid[data-domain="fitness"] {
+  --hm-1: var(--hm-fitness-1);
+  --hm-2: var(--hm-fitness-2);
+  --hm-3: var(--hm-fitness-3);
+  --hm-4: var(--hm-fitness-4);
+}
+.hm-grid[data-domain="coding"] {
+  --hm-1: var(--hm-coding-1);
+  --hm-2: var(--hm-coding-2);
+  --hm-3: var(--hm-coding-3);
+  --hm-4: var(--hm-coding-4);
+}
+.hm-grid[data-domain="all"] {
+  --hm-1: var(--hm-all-1);
+  --hm-2: var(--hm-all-2);
+  --hm-3: var(--hm-all-3);
+  --hm-4: var(--hm-all-4);
+}
+
+.hm-cell {
+  background-color: var(--hm-empty);
+}
+.hm-cell[data-level="1"] {
+  background-color: var(--hm-1);
+}
+.hm-cell[data-level="2"] {
+  background-color: var(--hm-2);
+}
+.hm-cell[data-level="3"] {
+  background-color: var(--hm-3);
+}
+.hm-cell[data-level="4"] {
+  background-color: var(--hm-4);
+}
+button.hm-cell:hover,
+button.hm-cell:focus-visible {
+  outline: 1px solid var(--color-fg-muted);
+  outline-offset: -1px;
+}

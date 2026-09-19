@@ -12,11 +12,13 @@
     "start": "npm run start --workspace apps/web",
     "lint": "npm run lint --workspace apps/web",
     "typecheck": "npm run typecheck --workspace apps/web",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose stop",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose stop db",
     "db:ui": "docker compose --profile tools up -d db-ui",
     "db:migrate": "npm run db:migrate --workspace apps/web",
-    "db:reset": "docker compose down && rm -rf .data/postgres && docker compose up -d && npm run db:migrate && npm run seed",
+    "db:reset": "docker compose down && rm -rf .data/postgres && docker compose up -d db && npm run db:migrate && npm run seed",
     "seed": "npm run seed --workspace apps/web"
   },
   "engines": {

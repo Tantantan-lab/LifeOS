@@ -1,10 +1,10 @@
-# LifeOS dev database — one Postgres container, sub2api-style.
-# Private by default: the port binds to 127.0.0.1 ONLY, so the database
-# is unreachable from the network even if the machine is exposed.
+# LifeOS — full stack in containers, sub2api-style.
+# Private by default: every published port binds to 127.0.0.1 ONLY.
 #
-#   npm run db:up     start
-#   npm run db:down   stop (data preserved)
-#   npm run db:ui     start adminer on http://127.0.0.1:8081 (on demand)
+#   npm run up      build + start everything (web + db)
+#   npm run down    stop everything (data preserved)
+#   npm run db:up   start the database only (host `npm run dev` workflow)
+#   npm run db:ui   adminer on http://127.0.0.1:8081 (on demand)
 #
 # Data lives in ./.data/postgres (bind mount, not a named volume) so
 # backup/migration is a plain file copy — the docker-compose.local.yml
@@ -28,6 +28,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: lifeos_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://lifeos:lifeos@db:5432/lifeos
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:3000:3000"
 
   db-ui:
     image: adminer:latest

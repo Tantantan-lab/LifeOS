@@ -29,23 +29,34 @@ docs                Architecture / design system / data model
 
 ## Getting started
 
+**Container mode (sub2api-style, one command):**
+
+```bash
+npm run up          # build + start web + db in Docker (http://localhost:3000)
+npm run seed        # first time: seed owner + 365-day history (idempotent)
+```
+
+**Dev mode (hot reload, DB in container only):**
+
 ```bash
 npm install
-npm run db:up       # start the postgres container (first run pulls the image)
+npm run db:up       # start the postgres container
 npm run db:migrate  # apply schema
-npm run seed        # seed owner + import the 365-day history (idempotent)
-npm run dev         # dev server (http://localhost:3000)
+npm run seed        # seed owner + history
+npm run dev         # dev server with hot reload
 ```
 
 ## Scripts
 
 ```bash
-npm run dev        # dev server (http://localhost:3000)
+npm run up         # docker compose up -d --build (web + db, full stack)
+npm run down       # docker compose down (stop everything, data preserved)
+npm run dev        # dev server on the host (http://localhost:3000)
 npm run build      # production build (data routes are dynamic; DB not needed)
-npm run start      # production server (needs DB running)
+npm run start      # production server on the host (needs DB running)
 npm run lint       # ESLint
 npm run typecheck  # tsc --noEmit
-npm run db:up      # start the postgres container (data preserved)
+npm run db:up      # start the postgres container only (data preserved)
 npm run db:down    # stop the postgres container
 npm run db:ui      # adminer at http://127.0.0.1:8081 (on demand)
 npm run db:migrate # apply pending migrations

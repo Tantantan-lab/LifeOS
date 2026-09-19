@@ -50,17 +50,25 @@ structured summary, which keeps the LLM grounded in numbers.
 ## Monorepo layout
 
 ```
-compose.yaml        dev database: ONE postgres:17 container (sub2api-style),
-                    127.0.0.1:5432 only, data bind-mounted at .data/postgres
+compose.yaml        full stack in containers (sub2api-style): web + postgres:17,
+                    all ports bound to 127.0.0.1, data bind-mounted at .data/postgres
 apps/web            Next.js — UI; reads events via src/data/db.ts (pg Pool)
+apps/web/Dockerfile multi-stage build, standalone runner
 apps/web/scripts    migrate.ts + seed.ts (tsx)
-apps/api            FastAPI (M3)
+apps/api            FastAPI (M3 — joins the compose stack)
 packages/ui         shared design system, extracted from apps/web (M4)
 packages/analytics  aggregations / trends / gap math (M3)
 packages/connectors importers (M4)
 database/migrations PostgreSQL DDL, applied by scripts/migrate.ts
 docs                this directory
 ```
+
+## Run modes
+
+- **Container mode**: `npm run up` — web + db both in Docker (2 containers),
+  the sub2api deployment shape. `npm run down` stops everything.
+- **Dev mode**: `npm run db:up` + `npm run dev` — hot reload on the host,
+  database in its container.
 
 ## Roadmap
 

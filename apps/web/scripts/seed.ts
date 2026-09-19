@@ -1,7 +1,7 @@
 /**
- * LifeOS seed — creates the owner auth user, upserts the catalogs
- * (profiles / metrics / data_sources / goals) and imports the full
- * deterministic 365-day event dataset from src/data/generator.ts.
+ * LifeOS seed — creates the single owner user, upserts the catalogs
+ * (metrics / data_sources / goals) and imports the full deterministic
+ * 365-day event dataset from src/data/generator.ts.
  *
  * Idempotent: delete-then-insert per owner; safe to run repeatedly.
  * Run from the repo root via `npm run seed` (cwd = apps/web, so the
@@ -11,13 +11,12 @@
  * `events_set_local_fields` trigger derives them from the timestamp.
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Pool } from "pg";
 import { generateEvents } from "@/data/generator";
 import { SOURCE_LABELS } from "@/lib/copy";
 
 const CHUNK = 500;
-const EMAIL = process.env.SEED_OWNER_EMAIL ?? "owner@lifeos.local";
-const PASSWORD = process.env.SEED_OWNER_PASSWORD ?? "lifeos-local-dev";
+const OWNER_EMAIL = "owner@lifeos.local";
 
 const METRIC_ROWS = [
   { metric: "study_minutes", domain: "study", label: "Study", unit: "min", value_kind: "minutes", aggregation: "sum" },
@@ -38,100 +37,93 @@ const GOAL_ROWS = [
   { domain: "sleep", metric: "sleep_minutes", period: "day", target_value: 420, target_min: 390, target_max: 450, label: "6.5–7.5h band" },
 ] as const;
 
-async function ensureOwner(db: SupabaseClient): Promise<string> {
-  const { data, error } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (error) throw error;
-  const hit = data.users.find((u) => u.email === EMAIL);
-  if (hit) {
-    console.log(`owner exists: ${hit.id}`);
-    return hit.id;
-  }
-  const { data: created, error: createError } = await db.auth.admin.createUser({
-    email: EMAIL,
-    password: PASSWORD,
-    email_confirm: true,
-  });
-  if (createError) throw createError;
-  console.log(`owner created: ${created.user.id}`);
-  return created.user.id;
+/** Upsert-or-reuse the single owner (no auth system — one row, always). */
+async function ensureOwner(pool: Pool): Promise<string> {
+  const { rows } = await pool.query(
+    `insert into users (email, display_name)
+     values ($1, 'Local Owner')
+     on conflict (email) do update set display_name = users.display_name
+     returning id`,
+    [OWNER_EMAIL]
+  );
+  return rows[0].id as string;
 }
 
 async function main() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
     throw new Error(
-      "missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — copy apps/web/.env.example to .env.local and run `npm run db:start`"
+      "missing DATABASE_URL — copy apps/web/.env.example to .env.local and run `npm run db:up`"
     );
   }
-  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const pool = new Pool({ connectionString: url });
 
-  const ownerId = await ensureOwner(db);
+  const ownerId = await ensureOwner(pool);
+  console.log(`owner: ${ownerId}`);
 
   // 1. catalogs (events.metric FKs metrics.metric — must exist first)
-  const { error: profileError } = await db.from("profiles").upsert({
-    id: ownerId,
-    email: EMAIL,
-    display_name: "Local Owner",
-    timezone: "Asia/Shanghai",
-  });
-  if (profileError) throw profileError;
+  for (const m of METRIC_ROWS) {
+    await pool.query(
+      `insert into metrics (metric, domain, label, unit, value_kind, aggregation)
+       values ($1,$2,$3,$4,$5,$6)
+       on conflict (metric) do update set label = excluded.label`,
+      [m.metric, m.domain, m.label, m.unit, m.value_kind, m.aggregation]
+    );
+  }
 
-  const { error: metricsError } = await db.from("metrics").upsert(METRIC_ROWS, { onConflict: "metric" });
-  if (metricsError) throw metricsError;
+  for (const [source, label] of Object.entries(SOURCE_LABELS)) {
+    await pool.query(
+      `insert into data_sources (user_id, source, label)
+       values ($1,$2,$3)
+       on conflict (user_id, source) do update set label = excluded.label`,
+      [ownerId, source, label]
+    );
+  }
 
-  const sourceRows = Object.keys(SOURCE_LABELS).map((source) => ({
-    user_id: ownerId,
-    source,
-    label: SOURCE_LABELS[source as keyof typeof SOURCE_LABELS],
-  }));
-  const { error: sourcesError } = await db.from("data_sources").upsert(sourceRows, { onConflict: "user_id,source" });
-  if (sourcesError) throw sourcesError;
-
-  const goalRows = GOAL_ROWS.map((g) => ({
-    user_id: ownerId,
-    domain: g.domain,
-    metric: g.metric,
-    period: g.period,
-    target_value: g.target_value,
-    target_min: "target_min" in g ? g.target_min : null,
-    target_max: "target_max" in g ? g.target_max : null,
-    label: g.label,
-  }));
-  const { error: goalsError } = await db.from("goals").upsert(goalRows, { onConflict: "user_id,domain,metric,period" });
-  if (goalsError) throw goalsError;
+  for (const g of GOAL_ROWS) {
+    await pool.query(
+      `insert into goals (user_id, domain, metric, period, target_value, target_min, target_max, label)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)
+       on conflict (user_id, domain, metric, period) do update set
+         target_value = excluded.target_value,
+         target_min = excluded.target_min,
+         target_max = excluded.target_max,
+         label = excluded.label`,
+      [ownerId, g.domain, g.metric, g.period, g.target_value, "target_min" in g ? g.target_min : null, "target_max" in g ? g.target_max : null, g.label]
+    );
+  }
 
   // 2. events: delete-then-insert per owner (idempotent)
   const events = generateEvents();
-  const { error: deleteError } = await db.from("events").delete().eq("user_id", ownerId);
-  if (deleteError) throw deleteError;
+  await pool.query("delete from events where user_id = $1", [ownerId]);
 
+  const COLS = 10; // event_id,user_id,timestamp,domain,metric,value,unit,source,confidence,metadata
   for (let i = 0; i < events.length; i += CHUNK) {
-    const rows = events.slice(i, i + CHUNK).map((e) => ({
-      event_id: e.event_id,
-      user_id: ownerId,
-      timestamp: e.timestamp,
-      domain: e.domain,
-      metric: e.metric,
-      value: e.value,
-      unit: e.unit,
-      source: e.source,
-      confidence: e.confidence,
-      metadata: e.metadata,
-    }));
-    const { error } = await db.from("events").insert(rows);
-    if (error) throw error;
+    const chunk = events.slice(i, i + CHUNK);
+    const values: string[] = [];
+    const params: unknown[] = [];
+    chunk.forEach((e, j) => {
+      const b = j * COLS;
+      values.push(`($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10})`);
+      params.push(
+        e.event_id, ownerId, e.timestamp, e.domain, e.metric,
+        e.value, e.unit, e.source, e.confidence, JSON.stringify(e.metadata)
+      );
+    });
+    await pool.query(
+      `insert into events (event_id, user_id, timestamp, domain, metric, value, unit, source, confidence, metadata)
+       values ${values.join(",")}`,
+      params
+    );
   }
 
-  // 3. self-verify (count: exact, no .select() body → no max_rows involvement)
-  const { count, error: countError } = await db
-    .from("events")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", ownerId);
-  if (countError) throw countError;
+  // 3. self-verify
+  const { rows } = await pool.query("select count(*)::int as n from events where user_id = $1", [ownerId]);
+  const count = rows[0].n;
   console.log(`events: ${count} rows / ${events.length} generated`);
   if (count !== events.length) throw new Error(`row count mismatch: ${count} !== ${events.length}`);
   console.log("seed complete");
+  await pool.end();
 }
 
 main().catch((e) => {

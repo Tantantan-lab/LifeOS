@@ -105,29 +105,34 @@ estimates assume 2.5 pts/week.
 
 ## M2 read path (Postgres is live)
 
-- Events live in Postgres (local Supabase via Docker). `src/data/db.ts`
-  loads them with the **service role key** (server-only; the key lacks the
-  NEXT_PUBLIC_ prefix and the `connection()` import blocks client imports).
+- One Postgres 17 container (compose.yaml, sub2api-style). The web app
+  connects directly via node-postgres (`pg` Pool) with `DATABASE_URL` —
+  no API gateway, no auth system. **Single user by design.**
+- **Privacy is a deployment property**: the DB binds to `127.0.0.1`
+  only (compose.yaml) and only server-side code holds credentials;
+  `DATABASE_URL` lacks the NEXT_PUBLIC_ prefix and the `connection()`
+  import in `db.ts` blocks client imports.
 - Pages are **dynamic by construction**: `connection()` (next/server) is
   awaited inside `db.ts`, tying dynamic rendering to the data access point.
   The four data routes render on demand (`ƒ Dynamic`); the four placeholder
   routes stay statically prerendered. Build never touches the DB.
-- PostgREST caps responses at `max_rows` and truncates **silently** —
-  config.toml raises it to 10000 AND `db.ts` paginates explicitly
-  (`.order().range()`), so a short read can never corrupt the numbers.
 - `db.ts` reconstructs the M1-identical ISO timestamp string from
   `local_date + local_time +08:00` — zero timezone math in the app.
+  `local_date` must be selected as `local_date::text`: node-postgres parses
+  `date` columns into JS Date objects, which silently break Map-key
+  lookups by "YYYY-MM-DD" strings.
 - Caching: one load per server instance in production (restart to pick up
   re-seeds); ~1s TTL in dev. A failed load never poisons the cache.
 - **`goals`/`metrics`/`data_sources` tables are WRITTEN but not READ in
   M2** — selectors still derive targets from `DOMAIN_META`. Reading the
   `goals` table means a metadata-driven UI refactor; that ships in M3.
-- Owner resolution: `resolveOwnerUserId()` reads the first profile row
-  (single-user M2). M3 swaps in the auth session — RLS policies are
-  already live (anon sees zero rows; authenticated sees only its own).
-- Gotcha: `supabase stop --no-backup` **wipes local data**. Use plain
-  `supabase stop` (backs up) or leave the stack running; re-seed with
-  `npm run seed` any time.
+- Owner resolution: `resolveOwnerUserId()` reads the single seeded `users`
+  row. M3 adds manual input (write path); auth only arrives if/when the
+  product goes multi-user.
+- Migrations: `database/migrations/*.sql` applied in order by
+  `scripts/migrate.ts` (tracks in `schema_migrations`). Data lives in
+  `.data/postgres` (bind mount — backup/migration is a plain file copy,
+  the sub2api compose-local pattern).
 
 ## Swap contract (unchanged from M1)
 

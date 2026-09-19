@@ -12,18 +12,17 @@
     "start": "npm run start --workspace apps/web",
     "lint": "npm run lint --workspace apps/web",
     "typecheck": "npm run typecheck --workspace apps/web",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop",
-    "db:status": "supabase status",
-    "db:reset": "supabase db reset --no-seed && npm run seed",
-    "seed": "npm run seed --workspace apps/web",
-    "rls:check": "npm run rls:check --workspace apps/web"
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose stop",
+    "db:ui": "docker compose --profile tools up -d db-ui",
+    "db:migrate": "npm run db:migrate --workspace apps/web",
+    "db:reset": "docker compose down && rm -rf .data/postgres && docker compose up -d && npm run db:migrate && npm run seed",
+    "seed": "npm run seed --workspace apps/web"
   },
   "engines": {
     "node": ">=20.9.0"
   },
   "devDependencies": {
-    "supabase": "^2.117.0",
     "tsx": "^4.23.13"
   }
 }

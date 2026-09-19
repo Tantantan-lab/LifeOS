@@ -50,14 +50,15 @@ structured summary, which keeps the LLM grounded in numbers.
 ## Monorepo layout
 
 ```
-apps/web            Next.js — UI; reads events via src/data/db.ts
-apps/web/scripts    seed.ts + rls-check.ts (tsx, `npm run seed`)
+compose.yaml        dev database: ONE postgres:17 container (sub2api-style),
+                    127.0.0.1:5432 only, data bind-mounted at .data/postgres
+apps/web            Next.js — UI; reads events via src/data/db.ts (pg Pool)
+apps/web/scripts    migrate.ts + seed.ts (tsx)
 apps/api            FastAPI (M3)
 packages/ui         shared design system, extracted from apps/web (M4)
 packages/analytics  aggregations / trends / gap math (M3)
 packages/connectors importers (M4)
-supabase/           local Supabase project: config.toml + migrations/ (PostgreSQL DDL)
-database/           README pointer to supabase/migrations/
+database/migrations PostgreSQL DDL, applied by scripts/migrate.ts
 docs                this directory
 ```
 
@@ -66,8 +67,8 @@ docs                this directory
 | Milestone | Scope | Status |
 |---|---|---|
 | M1 | UI: Home / Contribution / Me vs Me / Goals + design system, deterministic mock data | ✅ done |
-| M2 | Database: profiles / events / goals / metrics / data_sources (local Supabase, Docker), seeded 365-day history, RLS private-by-default, read path switched to Postgres | ✅ done |
-| M3 | Manual input + FastAPI analytics API + login (supabase-ssr) | next |
+| M2 | Database: users / events / goals / metrics / data_sources on one plain Postgres container (sub2api-style), seeded 365-day history, read path switched to the DB, private-by-default via localhost-only binding | ✅ done |
+| M3 | Manual input + FastAPI analytics API | next |
 | M4 | Analytics: 7D / 30D / 90D / 365D + connectors foundation | |
 | M5 | GitHub connector — first automatic source | |
 | M6 | AI insights (weekly review) | |

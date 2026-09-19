@@ -1,10 +1,12 @@
 -- LifeOS M2 — unified event stream + catalog + connector registry.
--- Private by default: RLS is enabled on every table; anon has no policy anywhere.
+-- Single-user by design: one `users` row, no auth system. Privacy is a
+-- deployment property — the database binds to 127.0.0.1 only (compose.yaml)
+-- and only the server-side app has credentials.
 
--- ---------------------------------------------------------------- profiles
-create table public.profiles (
-  id           uuid primary key references auth.users (id) on delete cascade,
-  email        text,
+-- ---------------------------------------------------------------- users
+create table public.users (
+  id           uuid primary key default gen_random_uuid(),
+  email        text unique not null,
   display_name text,
   timezone     text not null default 'Asia/Shanghai',
   created_at   timestamptz not null default now(),
@@ -22,9 +24,9 @@ create table public.metrics (
   created_at  timestamptz not null default now()
 );
 
--- ---------------------------------------------------------------- data_sources (per-user registry)
+-- ---------------------------------------------------------------- data_sources (registry)
 create table public.data_sources (
-  user_id      uuid not null references auth.users (id) on delete cascade,
+  user_id      uuid not null references public.users (id) on delete cascade,
   source       text not null,
   label        text not null,
   enabled      boolean not null default true,
@@ -38,7 +40,7 @@ create table public.data_sources (
 -- ---------------------------------------------------------------- goals
 create table public.goals (
   id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references auth.users (id) on delete cascade,
+  user_id      uuid not null references public.users (id) on delete cascade,
   domain       text not null check (domain in ('study','english','fitness','coding','sleep')),
   metric       text not null references public.metrics (metric) on update cascade,
   period       text not null default 'day' check (period in ('day','week','month')),
@@ -55,7 +57,7 @@ create table public.goals (
 -- ---------------------------------------------------------------- events (the unified stream)
 create table public.events (
   event_id   text primary key default (gen_random_uuid())::text,
-  user_id    uuid not null references auth.users (id) on delete cascade,
+  user_id    uuid not null references public.users (id) on delete cascade,
   timestamp  timestamptz not null,                      -- the instant
   local_date date not null,                             -- attributed calendar date (+08:00)
   local_time text not null check (local_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
@@ -91,22 +93,3 @@ end $$;
 create trigger events_set_local_fields
   before insert or update of timestamp on public.events
   for each row execute function public.events_set_local_fields();
-
--- ---------------------------------------------------------------- RLS
-alter table public.profiles     enable row level security;
-alter table public.events       enable row level security;
-alter table public.goals        enable row level security;
-alter table public.data_sources enable row level security;
-alter table public.metrics      enable row level security;
-
-create policy "own rows" on public.events
-  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "own rows" on public.goals
-  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "own rows" on public.data_sources
-  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "own row" on public.profiles
-  for all to authenticated using (id = auth.uid()) with check (id = auth.uid());
-
--- reference data: readable by any signed-in user, invisible to anon
-create policy "read catalog" on public.metrics for select to authenticated using (true);

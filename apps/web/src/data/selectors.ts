@@ -594,14 +594,30 @@ export async function getTodaySnapshot(): Promise<TodayItem[]> {
 
 /* ---- Insights (real AI rows with M1 sample fallback) ---- */
 
-export async function getInsightsPreview(): Promise<InsightPreview[]> {
+/** Latest stored insight for a period — the /insights page surface. */
+export async function getInsight(period: "week" | "month") {
+  return getLatestInsight(period);
+}
+
+export interface InsightsPreviewResult {
+  /** AI-generated items when live; the M1 sample cards otherwise. */
+  items: InsightPreview[];
+  live: boolean;
+  meta: import("@/data/types").InsightRecord | null;
+}
+
+export async function getInsightsPreview(): Promise<InsightsPreviewResult> {
   const insight = await getLatestInsight("week");
   if (insight) {
-    return [
-      { title: "FACT", body: insight.content.fact },
-      { title: "GAP", body: insight.content.gap },
-      { title: "ACTION", body: insight.content.action },
-    ];
+    return {
+      live: true,
+      meta: insight,
+      items: [
+        { title: "FACT", body: insight.content.fact },
+        { title: "GAP", body: insight.content.gap },
+        { title: "ACTION", body: insight.content.action },
+      ],
+    };
   }
 
   const idx = await getEventIndex();
@@ -618,20 +634,24 @@ export async function getInsightsPreview(): Promise<InsightPreview[]> {
       ? `Sleep averaged ${formatDuration(sleepAvg)} — within your 6.5–7.5h band.`
       : `Sleep averaged ${formatDuration(sleepAvg)} — slightly outside your 6.5–7.5h band.`;
 
-  return [
-    {
-      title: "Study trend",
-      body:
-        studyDelta >= 3
-          ? `Study improved ${Math.round(studyDelta)}% over the last 90 days — the strongest trend in your data.`
-          : "Study has held steady over the last 90 days.",
-    },
-    { title: "Sleep", body: sleepLine },
-    {
-      title: "IELTS Writing",
-      body: "IELTS Writing sits below target. 3× 40-min sessions per week would close the gap in about a month.",
-    },
-  ];
+  return {
+    live: false,
+    meta: null,
+    items: [
+      {
+        title: "Study trend",
+        body:
+          studyDelta >= 3
+            ? `Study improved ${Math.round(studyDelta)}% over the last 90 days — the strongest trend in your data.`
+            : "Study has held steady over the last 90 days.",
+      },
+      { title: "Sleep", body: sleepLine },
+      {
+        title: "IELTS Writing",
+        body: "IELTS Writing sits below target. 3× 40-min sessions per week would close the gap in about a month.",
+      },
+    ],
+  };
 }
 
 /* ------------------------------------------------------------------ */

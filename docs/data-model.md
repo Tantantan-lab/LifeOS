@@ -6,17 +6,29 @@ Everything becomes one row shape. One hundred future data sources must not
 require a new schema each.
 
 ```
-event_id    string   `${dateKey}:${domain}:${metric}:${seq}` — stable, human-debuggable
-user_id     string   "user_local_001"
-timestamp   string   ISO 8601 with offset, e.g. "2026-09-18T21:40:00+08:00"
+event_id    text     `${dateKey}:${domain}:${metric}:${seq}` — stable, human-debuggable
+user_id     uuid     → auth.users
+timestamp   timestamptz  the instant (stored UTC)
+local_date  date     attributed calendar date (+08:00) — THE grouping key
+local_time  text     wall-clock "HH:MM" (+08:00) — what the UI displays
 domain      enum     study | english | fitness | coding | sleep
-metric      string   e.g. study_minutes, vocabulary_review, workout_session
-value       number   metric units
-unit        string   min | words | commits | session | band
-source      enum     manual | timer | github | anki | apple_health | hevy
-confidence  number   0..1 — device 0.95, inferred 0.7, manual 1.0
+metric      text     → metrics.metric (FK — a typo fails at write time)
+value       numeric  metric units (IELTS bands are x.5)
+unit        text     min | words | commits | session | band
+source      text     manual | timer | github | anki | apple_health | hevy
+                     (deliberately NOT FK'd: provenance only — ingestion must
+                     never drop data because a registry row is missing)
+confidence  numeric  0..1 — device 0.95, inferred 0.7, manual 1.0
 metadata    jsonb    per-event extras (subject, repo, workout type, IELTS subscores)
 ```
+
+**local_date / local_time invariant**: both are DERIVED from `timestamp` by the
+`events_set_local_fields` BEFORE INSERT/UPDATE trigger (Asia/Shanghai) — one
+source of truth, an inconsistent row cannot be written. They are columns (not
+generated) because `timezone(text, timestamptz)` is only STABLE, and generated
+columns require IMMUTABLE expressions. A 07:30+08:00 wake event is stored as
+23:30Z UTC; the trigger keeps it attributed to the wake date — slicing the UTC
+timestamp would silently move it to the previous day.
 
 Examples: `{study, study_minutes, 120, min, timer}` · `{health→sleep,
 sleep_minutes, 428, min, apple_health}` · `{coding, commits, 4, commits,
@@ -91,13 +103,39 @@ Weighted mean = 71.8 → **72% ready**. Gap ranking: Kubernetes (35) →
 English (14) → Docker (6) → Linux (4) → Cloud (not started). Pace
 estimates assume 2.5 pts/week.
 
-## M2 swap contract
+## M2 read path (Postgres is live)
+
+- Events live in Postgres (local Supabase via Docker). `src/data/db.ts`
+  loads them with the **service role key** (server-only; the key lacks the
+  NEXT_PUBLIC_ prefix and the `connection()` import blocks client imports).
+- Pages are **dynamic by construction**: `connection()` (next/server) is
+  awaited inside `db.ts`, tying dynamic rendering to the data access point.
+  The four data routes render on demand (`ƒ Dynamic`); the four placeholder
+  routes stay statically prerendered. Build never touches the DB.
+- PostgREST caps responses at `max_rows` and truncates **silently** —
+  config.toml raises it to 10000 AND `db.ts` paginates explicitly
+  (`.order().range()`), so a short read can never corrupt the numbers.
+- `db.ts` reconstructs the M1-identical ISO timestamp string from
+  `local_date + local_time +08:00` — zero timezone math in the app.
+- Caching: one load per server instance in production (restart to pick up
+  re-seeds); ~1s TTL in dev. A failed load never poisons the cache.
+- **`goals`/`metrics`/`data_sources` tables are WRITTEN but not READ in
+  M2** — selectors still derive targets from `DOMAIN_META`. Reading the
+  `goals` table means a metadata-driven UI refactor; that ships in M3.
+- Owner resolution: `resolveOwnerUserId()` reads the first profile row
+  (single-user M2). M3 swaps in the auth session — RLS policies are
+  already live (anon sees zero rows; authenticated sees only its own).
+- Gotcha: `supabase stop --no-backup` **wipes local data**. Use plain
+  `supabase stop` (backs up) or leave the stack running; re-seed with
+  `npm run seed` any time.
+
+## Swap contract (unchanged from M1)
 
 - Components import **only from `src/data/selectors.ts`**. Nothing else
-  may import `generator.ts` / `events.ts`.
+  may import `db.ts` / `generator.ts`.
 - All selectors are **async** and return the DTOs in `src/data/types.ts`.
-  M2/M3 replace the function bodies with API calls (FastAPI serves these
-  DTOs from `packages/analytics`) — **zero component changes**.
+  M3 replaces selector bodies with FastAPI-backed calls — **zero component
+  changes**.
 - All date math happens server-side; client components receive date
   strings only (the single guard against hydration mismatch).
 - React `cache()` is deliberately not used — Next 16 superseded it with

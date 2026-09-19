@@ -16,26 +16,46 @@ LifeOS is not a todo list or a habit tracker. It aggregates your real life data 
 
 ```
 apps/web            Next.js 16 + TypeScript + Tailwind v4 + shadcn/ui
+apps/web/scripts    seed + RLS check (tsx)
 apps/api            FastAPI (M3)
 packages/ui         Shared design system (M4)
 packages/analytics  Aggregations / trends / gap math (M3)
 packages/connectors GitHub / Anki / Apple Health / Hevy importers (M4)
-database            PostgreSQL (Supabase) migrations (M2)
+supabase            Local Supabase project (config.toml + migrations)
+database            README pointer to supabase/migrations
 docs                Architecture / design system / data model
+```
+
+## Getting started
+
+```bash
+npm install
+npm run db:start   # local Supabase via Docker (first run pulls images)
+npm run seed       # create owner + import the 365-day history (idempotent)
+npm run dev        # dev server (http://localhost:3000)
 ```
 
 ## Scripts
 
 ```bash
 npm run dev        # dev server (http://localhost:3000)
-npm run build      # production build
+npm run build      # production build (data routes are dynamic; DB not needed)
+npm run start      # production server (needs DB running)
 npm run lint       # ESLint
 npm run typecheck  # tsc --noEmit
+npm run db:start   # start local Supabase stack (Docker)
+npm run db:stop    # stop WITHOUT wiping data
+npm run db:status  # URLs + keys
+npm run db:reset   # re-apply migrations + re-seed (destructive)
+npm run seed       # seed owner + events (idempotent)
+npm run rls:check  # RLS smoke test
 ```
+
+⚠️ `supabase stop --no-backup` wipes local data — use `npm run db:stop`.
 
 ## Status
 
-- **M1 (current)**: UI — Home, Contribution, Me vs Me, Goals, driven by deterministic mock data behind an async selector layer.
-- **M2 (next)**: Supabase database (User / Event / Goal / Metric / DataSource), manual input.
-- **M3**: FastAPI analytics API, AI insights.
-- **M4+**: Connectors (GitHub, Health, Calendar, Vocabulary), PWA.
+- **M1 (done)**: UI — Home, Contribution, Me vs Me, Goals + design system.
+- **M2 (done)**: local Supabase (Postgres) — profiles/events/goals/metrics/data_sources with RLS private-by-default, seeded 365-day history, read path switched to the DB.
+- **M3 (next)**: manual input + login (supabase-ssr) + FastAPI analytics API.
+- **M4+**: Connectors (GitHub, Health, Calendar, Vocabulary), AI insights, PWA.

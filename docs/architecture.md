@@ -50,12 +50,14 @@ structured summary, which keeps the LLM grounded in numbers.
 ## Monorepo layout
 
 ```
-apps/web            Next.js — UI only; consumes the selector layer
+apps/web            Next.js — UI; reads events via src/data/db.ts
+apps/web/scripts    seed.ts + rls-check.ts (tsx, `npm run seed`)
 apps/api            FastAPI (M3)
 packages/ui         shared design system, extracted from apps/web (M4)
 packages/analytics  aggregations / trends / gap math (M3)
 packages/connectors importers (M4)
-database/migrations PostgreSQL DDL (M2)
+supabase/           local Supabase project: config.toml + migrations/ (PostgreSQL DDL)
+database/           README pointer to supabase/migrations/
 docs                this directory
 ```
 
@@ -64,8 +66,8 @@ docs                this directory
 | Milestone | Scope | Status |
 |---|---|---|
 | M1 | UI: Home / Contribution / Me vs Me / Goals + design system, deterministic mock data | ✅ done |
-| M2 | Database: User / Event / Goal / Metric / DataSource (Supabase) | next |
-| M3 | Manual input + FastAPI analytics API | |
+| M2 | Database: profiles / events / goals / metrics / data_sources (local Supabase, Docker), seeded 365-day history, RLS private-by-default, read path switched to Postgres | ✅ done |
+| M3 | Manual input + FastAPI analytics API + login (supabase-ssr) | next |
 | M4 | Analytics: 7D / 30D / 90D / 365D + connectors foundation | |
 | M5 | GitHub connector — first automatic source | |
 | M6 | AI insights (weekly review) | |

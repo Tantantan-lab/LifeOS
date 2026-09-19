@@ -1,12 +1,13 @@
 /**
- * The query surface every page reads from — and the single M2 swap seam:
- * replacing these function bodies with fetch() calls must not touch any
- * component. All functions are async by contract even though the mock
- * dataset is synchronous.
+ * The query surface every page reads from. M2: events come from Postgres
+ * (src/data/db.ts → getEvents); the index is built lazily on first await
+ * and cached for the server instance.
  *
  * Rules:
- *  - Components import ONLY from this file (never generator/events).
+ *  - Components import ONLY from this file (never db/generator).
  *  - All date math happens here; components receive date strings only.
+ *  - Goal targets still come from DOMAIN_META in M2 — the `goals` table
+ *    is WRITTEN (seed) but not read until M3 (metadata-driven UI).
  */
 
 import {
@@ -20,7 +21,7 @@ import {
   WINDOWS,
   WINDOW_ORDER,
 } from "@/data/constants";
-import { EVENTS } from "@/data/events";
+import { getEvents } from "@/data/db";
 import type {
   Domain,
   DomainSummary,
@@ -46,40 +47,66 @@ import { formatCount, formatDuration, formatHours1, formatMonthDay, formatTime }
 import { SOURCE_LABELS } from "@/lib/copy";
 
 /* ------------------------------------------------------------------ */
-/* Event index                                                         */
+/* Event index (lazy — built from Postgres on first await)             */
 /* ------------------------------------------------------------------ */
 
-const dateOf = (timestamp: string) => timestamp.slice(0, 10);
-
-const eventIndex = (() => {
-  const idx = new Map<Domain, Map<string, LifeEvent[]>>();
-  for (const e of EVENTS) {
-    const day = dateOf(e.timestamp);
-    const dayMap = idx.get(e.domain) ?? new Map();
-    const list = dayMap.get(day) ?? [];
-    list.push(e);
-    dayMap.set(day, list);
-    idx.set(e.domain, dayMap);
-  }
-  return idx;
-})();
-
-function eventsOn(domain: Domain, dateKey: string) {
-  return eventIndex.get(domain)?.get(dateKey) ?? [];
+export interface EventIndex {
+  byDomainDate: Map<Domain, Map<string, LifeEvent[]>>;
 }
 
-function metricValueOn(domain: Domain, metric: string, dateKey: string): number {
-  return eventsOn(domain, dateKey)
+function buildIndex(events: LifeEvent[]): EventIndex {
+  const byDomainDate = new Map<Domain, Map<string, LifeEvent[]>>();
+  for (const e of events) {
+    const dayMap = byDomainDate.get(e.domain) ?? new Map();
+    const list = dayMap.get(e.local_date) ?? [];
+    list.push(e);
+    dayMap.set(e.local_date, list);
+    byDomainDate.set(e.domain, dayMap);
+  }
+  return { byDomainDate };
+}
+
+let indexPromise: Promise<EventIndex> | null = null;
+
+function getEventIndex(): Promise<EventIndex> {
+  indexPromise ??= getEvents()
+    .then(buildIndex)
+    .catch((e) => {
+      indexPromise = null; // a failed load never poisons the cache
+      throw e;
+    });
+  return indexPromise;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pure helpers over the index                                         */
+/* ------------------------------------------------------------------ */
+
+function eventsOn(idx: EventIndex, domain: Domain, dateKey: string): LifeEvent[] {
+  return idx.byDomainDate.get(domain)?.get(dateKey) ?? [];
+}
+
+function metricValueOn(idx: EventIndex, domain: Domain, metric: string, dateKey: string): number {
+  return eventsOn(idx, domain, dateKey)
     .filter((e) => e.metric === metric)
     .reduce((sum, e) => sum + e.value, 0);
 }
 
-function sumMetric(domain: Domain, metric: string, from: string, to: string): number {
+function sumMetric(idx: EventIndex, domain: Domain, metric: string, from: string, to: string): number {
   let sum = 0;
   for (let d = daysBetween(ANCHOR_DATE, from); d <= daysBetween(ANCHOR_DATE, to); d++) {
-    sum += metricValueOn(domain, metric, addDays(ANCHOR_DATE, d));
+    sum += metricValueOn(idx, domain, metric, addDays(ANCHOR_DATE, d));
   }
   return sum;
+}
+
+/** Daily values of a metric over a window (oldest → newest). */
+function dailySeries(idx: EventIndex, domain: Domain, metric: string, from: string, to: string): number[] {
+  const out: number[] = [];
+  for (let d = daysBetween(ANCHOR_DATE, from); d <= daysBetween(ANCHOR_DATE, to); d++) {
+    out.push(metricValueOn(idx, domain, metric, addDays(ANCHOR_DATE, d)));
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -95,17 +122,17 @@ export function levelOf(completion: number): Level {
 }
 
 /** Completion vs goal, capped at 100% — 16h is never darker than 8h. */
-function completionForDomain(domain: HeatmapDomain, dateKey: string): number {
+function completionForDomain(idx: EventIndex, domain: HeatmapDomain, dateKey: string): number {
   const meta = DOMAIN_META[domain];
   if (meta.goalMode === "day") {
-    return Math.min(1, metricValueOn(domain, meta.primaryMetric, dateKey) / meta.dayGoal);
+    return Math.min(1, metricValueOn(idx, domain, meta.primaryMetric, dateKey) / meta.dayGoal);
   }
-  const total = sumMetric(domain, meta.primaryMetric, addDays(dateKey, -6), dateKey);
+  const total = sumMetric(idx, domain, meta.primaryMetric, addDays(dateKey, -6), dateKey);
   return Math.min(1, total / (meta.weeklyGoal ?? 1));
 }
 
-function completionAllOn(dateKey: string): number {
-  return HEATMAP_DOMAINS.reduce((sum, d) => sum + completionForDomain(d, dateKey), 0) / HEATMAP_DOMAINS.length;
+function completionAllOn(idx: EventIndex, dateKey: string): number {
+  return HEATMAP_DOMAINS.reduce((sum, d) => sum + completionForDomain(idx, d, dateKey), 0) / HEATMAP_DOMAINS.length;
 }
 
 function trendOf(deltaPct: number, epsilon = 3): Trend {
@@ -127,25 +154,17 @@ const PREV_30 = { from: addDays(ANCHOR_DATE, -59), to: addDays(ANCHOR_DATE, -30)
 const LAST_90 = { from: addDays(ANCHOR_DATE, -89), to: ANCHOR_DATE };
 const PREV_90 = { from: addDays(ANCHOR_DATE, -179), to: addDays(ANCHOR_DATE, -90) };
 
-/** Daily values of a metric over a window (oldest → newest). */
-function dailySeries(domain: Domain, metric: string, from: string, to: string): number[] {
-  const out: number[] = [];
-  for (let d = daysBetween(ANCHOR_DATE, from); d <= daysBetween(ANCHOR_DATE, to); d++) {
-    out.push(metricValueOn(domain, metric, addDays(ANCHOR_DATE, d)));
-  }
-  return out;
-}
-
 /* ------------------------------------------------------------------ */
 /* Selectors                                                           */
 /* ------------------------------------------------------------------ */
 
 export async function getDomainSummaries(): Promise<DomainSummary[]> {
+  const idx = await getEventIndex();
   const domains = Object.keys(DOMAIN_META) as Domain[];
   return domains.map((domain) => {
     const meta = DOMAIN_META[domain];
-    const nowSum = sumMetric(domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
-    const thenSum = sumMetric(domain, meta.primaryMetric, PREV_30.from, PREV_30.to);
+    const nowSum = sumMetric(idx, domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
+    const thenSum = sumMetric(idx, domain, meta.primaryMetric, PREV_30.from, PREV_30.to);
     const delta = deltaPctOf(nowSum, thenSum);
 
     let headline: string;
@@ -165,13 +184,13 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
         break;
     }
 
-    const spark = dailySeries(domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
+    const spark = dailySeries(idx, domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
 
     const isHeatmapDomain = HEATMAP_DOMAINS.includes(domain as HeatmapDomain);
     const todayCompletion = isHeatmapDomain
-      ? completionForDomain(domain as HeatmapDomain, ANCHOR_DATE)
+      ? completionForDomain(idx, domain as HeatmapDomain, ANCHOR_DATE)
       : null;
-    const todayValue = metricValueOn(domain, meta.primaryMetric, ANCHOR_DATE);
+    const todayValue = metricValueOn(idx, domain, meta.primaryMetric, ANCHOR_DATE);
     const todayValueLabel =
       todayValue > 0 ? formatTodayValue(domain, meta.primaryMetric, todayValue) : null;
 
@@ -189,21 +208,22 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
 }
 
 export async function getHeatmapData(): Promise<{ gridStart: string; days: HeatmapDay[] }> {
+  const idx = await getEventIndex();
   const days: HeatmapDay[] = [];
   for (let i = 0; i < 365; i++) {
     const dateKey = addDays(FIRST_DATE, i);
     const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
     for (const domain of HEATMAP_DOMAINS) {
-      const completion = completionForDomain(domain, dateKey);
+      const completion = completionForDomain(idx, domain, dateKey);
       const meta = DOMAIN_META[domain];
-      const value = metricValueOn(domain, meta.primaryMetric, dateKey);
+      const value = metricValueOn(idx, domain, meta.primaryMetric, dateKey);
       const displayValue =
         meta.goalMode === "trailing7"
-          ? sumMetric(domain, meta.primaryMetric, addDays(dateKey, -6), dateKey)
+          ? sumMetric(idx, domain, meta.primaryMetric, addDays(dateKey, -6), dateKey)
           : value;
       cells[domain] = { completion, level: levelOf(completion), value, displayValue };
     }
-    const completionAll = completionAllOn(dateKey);
+    const completionAll = completionAllOn(idx, dateKey);
     days.push({
       date: dateKey,
       completionAll,
@@ -239,6 +259,7 @@ function formatVersusValue(format: "duration" | "hours1" | "count", value: numbe
 }
 
 export async function getMeVsMeAll(): Promise<Record<WindowKey, MeVsMeWindow>> {
+  const idx = await getEventIndex();
   const out = {} as Record<WindowKey, MeVsMeWindow>;
 
   for (const key of WINDOW_ORDER) {
@@ -250,13 +271,13 @@ export async function getMeVsMeAll(): Promise<Record<WindowKey, MeVsMeWindow>> {
 
     const rows: VersusRow[] = (Object.keys(VERSUS) as Domain[]).map((domain) => {
       const cfg = VERSUS[domain];
-      const nowSum = sumMetric(domain, cfg.metric, nowFrom, nowTo);
-      const thenSum = sumMetric(domain, cfg.metric, thenFrom, thenTo);
+      const nowSum = sumMetric(idx, domain, cfg.metric, nowFrom, nowTo);
+      const thenSum = sumMetric(idx, domain, cfg.metric, thenFrom, thenTo);
       const nowValue = cfg.aggregation === "avg" ? nowSum / w.length : nowSum;
       const thenValue = cfg.aggregation === "avg" ? thenSum / w.length : thenSum;
       const delta = deltaPctOf(nowSum, thenSum);
 
-      const spark = dailySeries(domain, cfg.metric, nowFrom, nowTo);
+      const spark = dailySeries(idx, domain, cfg.metric, nowFrom, nowTo);
 
       // Weekly rollups over the NOW window, oldest → newest.
       const weekly: { label: string; value: number }[] = [];
@@ -265,7 +286,7 @@ export async function getMeVsMeAll(): Promise<Record<WindowKey, MeVsMeWindow>> {
         const bucketEnd = addDays(bucketStart, Math.min(6, daysBetween(bucketStart, nowTo)));
         weekly.push({
           label: bucketStart,
-          value: sumMetric(domain, cfg.metric, bucketStart, bucketEnd),
+          value: sumMetric(idx, domain, cfg.metric, bucketStart, bucketEnd),
         });
         bucketStart = addDays(bucketEnd, 1);
       }
@@ -303,6 +324,7 @@ function weightedReadiness(): number {
 }
 
 export async function getGoalProgress(): Promise<GoalProgress> {
+  const idx = await getEventIndex();
   const overall = Math.round(weightedReadiness());
 
   // Dev-only guard: the hero number is a spec'd value (72%); drift must fail loudly.
@@ -313,7 +335,7 @@ export async function getGoalProgress(): Promise<GoalProgress> {
   const evidenceDays = (() => {
     let n = 0;
     for (let i = 0; i < 14; i++) {
-      if (completionAllOn(addDays(ANCHOR_DATE, -i)) > 0) n++;
+      if (completionAllOn(idx, addDays(ANCHOR_DATE, -i)) > 0) n++;
     }
     return n;
   })();
@@ -362,11 +384,12 @@ export async function getGaps(): Promise<GapItem[]> {
 /* ---- Goals ---- */
 
 export async function getGoals(): Promise<GoalRow[]> {
+  const idx = await getEventIndex();
   const domains = Object.keys(DOMAIN_META) as Domain[];
   return domains.map((domain) => {
     const meta = DOMAIN_META[domain];
-    const nowSum = sumMetric(domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
-    const thenSum = sumMetric(domain, meta.primaryMetric, PREV_30.from, PREV_30.to);
+    const nowSum = sumMetric(idx, domain, meta.primaryMetric, LAST_30.from, LAST_30.to);
+    const thenSum = sumMetric(idx, domain, meta.primaryMetric, PREV_30.from, PREV_30.to);
     const delta = deltaPctOf(nowSum, thenSum);
 
     let currentLabel: string;
@@ -401,9 +424,9 @@ export async function getGoals(): Promise<GoalRow[]> {
       for (let i = 0; i < len; i++) {
         const dateKey = addDays(ANCHOR_DATE, -i);
         if (domain === "sleep") {
-          const v = metricValueOn(domain, meta.primaryMetric, dateKey);
+          const v = metricValueOn(idx, domain, meta.primaryMetric, dateKey);
           if (v >= 390 && v <= 450) met++;
-        } else if (completionForDomain(domain as HeatmapDomain, dateKey) >= 0.8) {
+        } else if (completionForDomain(idx, domain as HeatmapDomain, dateKey) >= 0.8) {
           met++;
         }
       }
@@ -426,17 +449,18 @@ export async function getGoals(): Promise<GoalRow[]> {
 /* ---- Heatmap stats ---- */
 
 export async function getHeatmapStats(): Promise<HeatmapStats> {
+  const idx = await getEventIndex();
   let active90 = 0;
   let sum90 = 0;
   for (let i = 0; i < 90; i++) {
-    const c = completionAllOn(addDays(ANCHOR_DATE, -i));
+    const c = completionAllOn(idx, addDays(ANCHOR_DATE, -i));
     sum90 += c;
     if (c > 0) active90++;
   }
 
   let current = 0;
   for (let i = 0; i < 365; i++) {
-    if (completionAllOn(addDays(ANCHOR_DATE, -i)) > 0) current++;
+    if (completionAllOn(idx, addDays(ANCHOR_DATE, -i)) > 0) current++;
     else break;
   }
 
@@ -444,7 +468,7 @@ export async function getHeatmapStats(): Promise<HeatmapStats> {
   let run = 0;
   for (let i = 0; i < 365; i++) {
     const dateKey = addDays(FIRST_DATE, i);
-    if (completionAllOn(dateKey) > 0) {
+    if (completionAllOn(idx, dateKey) > 0) {
       run++;
       longest = Math.max(longest, run);
     } else {
@@ -456,7 +480,7 @@ export async function getHeatmapStats(): Promise<HeatmapStats> {
     let activeDays = 0;
     let sumCompletion = 0;
     for (let i = 0; i < 365; i++) {
-      const c = completionForDomain(domain, addDays(FIRST_DATE, i));
+      const c = completionForDomain(idx, domain, addDays(FIRST_DATE, i));
       if (c > 0) {
         activeDays++;
         sumCompletion += c;
@@ -485,7 +509,7 @@ const METRIC_VALUE_LABELS: Record<string, (v: number, e: LifeEvent) => string> =
   vocabulary_review: (v) => `${v} words`,
   english_minutes: (v) => formatDuration(v),
   ielts_mock_band: (v) => `Band ${v}`,
-  workout_session: (_v, e) => `${e.metadata.type} · ${e.metadata.duration_min} min`,
+  workout_session: (_v, e) => `${e.metadata.duration_min} min`,
   coding_commits: (v) => `${v} commits`,
   coding_minutes: (v) => formatDuration(v),
   sleep_minutes: (v) => formatDuration(v),
@@ -503,7 +527,12 @@ const METRIC_LABELS: Record<string, (e: LifeEvent) => string> = {
 };
 
 export async function getTodaySnapshot(): Promise<TodayItem[]> {
-  return EVENTS.filter((e) => dateOf(e.timestamp) === ANCHOR_DATE)
+  const idx = await getEventIndex();
+  const todays: LifeEvent[] = [];
+  for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
+    todays.push(...eventsOn(idx, domain, ANCHOR_DATE));
+  }
+  return todays
     .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
     .map((e) => ({
       time: formatTime(e.timestamp),
@@ -518,11 +547,12 @@ export async function getTodaySnapshot(): Promise<TodayItem[]> {
 /* ---- Insights preview (real numbers, sample badge) ---- */
 
 export async function getInsightsPreview(): Promise<InsightPreview[]> {
-  const studyNow = sumMetric("study", "study_minutes", LAST_90.from, LAST_90.to);
-  const studyThen = sumMetric("study", "study_minutes", PREV_90.from, PREV_90.to);
+  const idx = await getEventIndex();
+  const studyNow = sumMetric(idx, "study", "study_minutes", LAST_90.from, LAST_90.to);
+  const studyThen = sumMetric(idx, "study", "study_minutes", PREV_90.from, PREV_90.to);
   const studyDelta = deltaPctOf(studyNow, studyThen);
 
-  const sleepAvg = sumMetric("sleep", "sleep_minutes", LAST_30.from, LAST_30.to) / 30;
+  const sleepAvg = sumMetric(idx, "sleep", "sleep_minutes", LAST_30.from, LAST_30.to) / 30;
   const sleepLine =
     sleepAvg >= 390 && sleepAvg <= 450
       ? `Sleep averaged ${formatDuration(sleepAvg)} — within your 6.5–7.5h band.`

@@ -1,9 +1,14 @@
 /**
- * Deterministic mock event generator — one year of realistic data.
+ * Deterministic event generator — one year of realistic data.
  *
  * Every per-day value derives from hash(SEED, domain, dateKey), so
  * generation is order-independent and past days never change.
  * Realism curves are documented per domain; see docs/data-model.md.
+ *
+ * M2: this is the single source of truth for the dataset — the seed
+ * script (scripts/seed.ts) imports it into Postgres, and the web app
+ * reads back from Postgres via src/data/db.ts. The two paths produce
+ * byte-identical data.
  */
 
 import {
@@ -72,6 +77,7 @@ function makeEvent(
     event_id: `${dateKey}:${domain}:${metric}:${seq}`,
     user_id: USER_ID,
     timestamp: `${dateKey}T${time}:00${TIMEZONE_OFFSET}`,
+    local_date: dateKey,
     domain,
     metric,
     value,

@@ -17,12 +17,14 @@ export type Source =
   | "apple_health"
   | "hevy";
 
-/** Mirrors the future Event table 1:1. */
+/** Mirrors the events table 1:1. */
 export interface LifeEvent {
   event_id: string;
   user_id: string;
   /** ISO 8601 with +08:00 offset. */
   timestamp: string;
+  /** Attributed calendar date (+08:00) — the grouping key for all selectors. */
+  local_date: string;
   domain: Domain;
   metric: string;
   value: number;

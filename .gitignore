@@ -7,3 +7,4 @@ out/
 .data/
 apps/api/.env
 .venv/
+apps/api/.tokens.json

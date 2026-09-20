@@ -257,36 +257,34 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
     const thenSum = sumOver(prev30.from, prev30.to);
     const delta = deltaPctOf(nowSum, thenSum);
 
+    // Combined daily series (learning: study + reading on one sparkline).
+    const spark = dailySeriesAll(idx, domain, last30.from, last30.to);
+    // Young data (<7 active days in the last 30): a 30-day average would
+    // misrepresent the truth ("2 /day" after one 60-word day) — show
+    // today's real value until the metric has a cycle of history.
+    const activeDays = spark.filter((v) => v > 0).length;
+    const young = activeDays < 7;
+
     let headline: string;
     let unitLabel = meta.unitLabel;
     switch (domain) {
       case "learning":
-        headline = formatDuration(nowSum / 30);
+        headline = young ? formatDuration(domainValueOn(idx, domain, today)) : formatDuration(nowSum / 30);
+        unitLabel = young ? "/today" : "/day";
         break;
-      case "english": {
-        // A brand-new metric (1 day of data) makes the 30-day average
-        // misleading ("0.3 /day") — show today's real value instead.
-        const avg = nowSum / 30;
-        if (avg < 1) {
-          const todayWords = domainValueOn(idx, domain, today);
-          headline = formatCount(todayWords);
-          unitLabel = "/today";
-        } else {
-          headline = formatCount(avg);
-        }
+      case "english":
+        headline = young ? formatCount(domainValueOn(idx, domain, today)) : formatCount(nowSum / 30);
+        unitLabel = young ? "/today" : "/day";
         break;
-      }
       case "coding":
       case "productivity":
         headline = formatCount((nowSum * 7) / 30);
         break;
       case "health":
-        headline = formatDuration(nowSum / 30);
+        headline = young ? formatDuration(domainValueOn(idx, domain, today)) : formatDuration(nowSum / 30);
+        unitLabel = young ? "/today" : "/night";
         break;
     }
-
-    // Combined daily series (learning: study + reading on one sparkline).
-    const spark = dailySeriesAll(idx, domain, last30.from, last30.to);
 
     const isHeatmapDomain = HEATMAP_DOMAINS.includes(domain as HeatmapDomain);
     const todayCompletion = isHeatmapDomain

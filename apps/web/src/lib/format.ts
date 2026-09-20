@@ -44,6 +44,27 @@ export function formatMonthDay(key: string): string {
   return `${MONTH_NAMES[m - 1]} ${d}`;
 }
 
+const ZH_WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+/** "2026-09-19" → "2026年9月19日 周六" — the zh counterpart of formatDateLong. */
+export function formatDateLongZh(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return `${y}年${m}月${d}日 ${ZH_WEEKDAYS[weekdayOfZh(key)]}`;
+}
+
+// local pure weekday (0=Sun) — mirrors lib/dates without importing to keep
+// this module dependency-free for the client bundle.
+function weekdayOfZh(key: string): number {
+  const [y, m, d] = key.split("-").map(Number);
+  // Howard Hinnant days_from_civil
+  const yy = m <= 2 ? y - 1 : y;
+  const era = Math.floor(yy / 400);
+  const yoe = yy - era * 400;
+  const doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return (((era * 146097 + doe - 719468 + 4) % 7) + 7) % 7;
+}
+
 /** "21:40" from "2026-09-18T21:40:00+08:00" */
 export function formatTime(timestamp: string): string {
   return timestamp.slice(11, 16);

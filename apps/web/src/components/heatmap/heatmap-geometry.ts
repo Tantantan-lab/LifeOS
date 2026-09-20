@@ -32,7 +32,15 @@ export function buildGrid(
   const weeks = Math.ceil((leadingBlanks + dates.length) / 7);
 
   // One label per month at the first day of that month, dropped when it
-  // would sit within 2 columns of the previous label (overlap guard).
+  // would sit within 2 columns of the previous label (overlap guard) or
+  // when the month has fewer than 15 days of data (partial edge months
+  // like a trailing September would otherwise duplicate the next year's
+  // label and read as a bug).
+  const daysInMonth = new Map<string, number>();
+  for (const date of dates) {
+    const month = monthKeyOf(date);
+    daysInMonth.set(month, (daysInMonth.get(month) ?? 0) + 1);
+  }
   const monthLabels: MonthLabel[] = [];
   let lastCol = -99;
   let prevMonth = "";
@@ -41,7 +49,7 @@ export function buildGrid(
     if (month !== prevMonth) {
       prevMonth = month;
       const col = colOf(i, leadingBlanks);
-      if (col - lastCol >= 2) {
+      if (col - lastCol >= 2 && (daysInMonth.get(month) ?? 0) >= 15) {
         monthLabels.push({ label: monthShortOf(date), col });
         lastCol = col;
       }

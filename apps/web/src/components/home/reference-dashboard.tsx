@@ -14,6 +14,8 @@ import type {
 import { useLocale } from "@/components/i18n/locale-provider";
 import { buildGrid } from "@/components/heatmap/heatmap-geometry";
 import { formatDateLong } from "@/lib/dates";
+import { formatDateLongZh } from "@/lib/format";
+import { todayKey } from "@/lib/today";
 import { logSession } from "@/app/actions/log-session";
 
 export interface DashboardData {
@@ -94,7 +96,7 @@ function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[
         ))}
       </div>
       <div className="mt-3 flex gap-3">
-        <div className="grid h-[154px] grid-rows-7 text-[11px] text-[#adb5c3]">{dayRows.map((day) => <span key={day} className="leading-[14px]">{day}</span>)}</div>
+        <div className="grid h-[154px] grid-rows-7 text-[11px] text-[#adb5c3]">{dayRows.map((day) => <span key={day} className="leading-[14px]">{locale === "zh" ? ({ Mon: "一", Tue: "二", Wed: "三", Thu: "四", Fri: "五", Sat: "六", Sun: "日" }[day] ?? day) : day}</span>)}</div>
         <div className="heatmap-grid" aria-label="Yearly contribution heatmap">
           {cells.map((level, index) => (
             <button
@@ -111,7 +113,7 @@ function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[
       {selectedDay && (
         <div className="mt-3 rounded-[10px] bg-[#151a23] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-white">{formatDateLong(selectedDay.date)}</span>
+            <span className="text-[13px] font-semibold text-white">{locale === "zh" ? formatDateLongZh(selectedDay.date) : formatDateLong(selectedDay.date)}</span>
             <span className="text-[11px] text-[#8d96a6]">{locale === "zh" ? `当日目标：${Math.round(selectedDay.completionAll * 100)}%` : `Daily Goal: ${Math.round(selectedDay.completionAll * 100)}%`}</span>
             <button onClick={() => setSelected(null)} className="text-[#7e8796] hover:text-white" aria-label={locale === "zh" ? "关闭" : "Close"}>×</button>
           </div>
@@ -286,7 +288,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
             </p>
           )}
         </div>
-        <div className="dashboard-date-controls flex items-center gap-4 text-[12px] text-white"><span>{data.header.dateLabel}</span><ChevronLeft className="size-4 text-[#7e8796]" /><ChevronRight className="size-4 text-[#525b69]" /><Sun className="size-[18px] text-[#f0b84b]" /><button onClick={() => setLocale(locale === "en" ? "zh" : "en")} className="language-toggle" aria-label={locale === "en" ? "切换到中文" : "Switch to English"}><span className={locale === "en" ? "active" : ""}>EN</span><span className={locale === "zh" ? "active" : ""}>中</span></button></div>
+        <div className="dashboard-date-controls flex items-center gap-4 text-[12px] text-white"><span>{locale === "zh" ? formatDateLongZh(todayKey()) : data.header.dateLabel}</span><ChevronLeft className="size-4 text-[#7e8796]" /><ChevronRight className="size-4 text-[#525b69]" /><Sun className="size-[18px] text-[#f0b84b]" /><button onClick={() => setLocale(locale === "en" ? "zh" : "en")} className="language-toggle" aria-label={locale === "en" ? "切换到中文" : "Switch to English"}><span className={locale === "en" ? "active" : ""}>EN</span><span className={locale === "zh" ? "active" : ""}>中</span></button></div>
         <div className="hidden self-stretch py-1 xl:block"><div className="flex items-start justify-end gap-4"><Search className="mt-2 size-5 text-[#d3d8e0]" /><div className="flex items-start gap-3"><span className="size-8 rounded-full bg-[radial-gradient(circle_at_55%_40%,#7e8d86_0_25%,#574934_28%_55%,#202a30_58%)]" /><span className="text-[11px] leading-4 text-[#9098a6]">{locale === "zh" ? <>打造你想要的<br />人生。</> : <>Build the life<br />you want.</>}</span></div></div><div className="mt-3 rounded-[10px] bg-[#121821] px-5 py-4 text-[11px] leading-5 text-[#9ea7b5]">{locale === "zh" ? <>每天进步一点点&nbsp; —<br />终会积少成多。</> : <>A little progress each day&nbsp; —<br />adds up to big results.</>}</div></div>
       </header>
       <div className="top-metrics-grid">

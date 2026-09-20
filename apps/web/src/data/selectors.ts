@@ -349,49 +349,76 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
   });
 }
 
-export async function getHeatmapData(): Promise<{ gridStart: string; days: HeatmapDay[] }> {
+export interface HeatmapYear {
+  gridStart: string;
+  days: HeatmapDay[];
+}
+
+/**
+ * Per-YEAR heatmap data: every year from the earliest event to the
+ * current year, each a full Jan 1 → Dec 31 calendar (future months of
+ * the current year render as empty cells). The dashboard's year switcher
+ * picks one of these client-side.
+ */
+export async function getHeatmapData(): Promise<{
+  years: Record<string, HeatmapYear>;
+  availableYears: string[];
+  currentYear: string;
+}> {
   const idx = await getEventIndex();
   const today = todayKey();
   const active = domainsWithData(idx, today);
+  const currentYear = today.slice(0, 4);
 
-  // The heatmap shows the FULL calendar year (Jan 1 → Dec 31) — matching
-  // the year badge in the dashboard header; future months render as empty
-  // cells. Older data still feeds stats, Me vs Me and insights; a year
-  // switcher is future work.
-  const year = today.slice(0, 4);
-  const yearStart = `${year}-01-01`;
-  const yearEnd = `${year}-12-31`;
-
-  const days: HeatmapDay[] = [];
-  for (let d = yearStart; daysBetween(d, yearEnd) >= 0; d = addDays(d, 1)) {
-    const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
-    for (const domain of HEATMAP_DOMAINS) {
-      const completion = completionForDomain(idx, domain, d);
-      const meta = HEATMAP_META[domain];
-      const value = heatmapValueOn(idx, domain, d);
-      const displayValue =
-        meta.goalMode === "trailing7"
-          ? completionForDomain(idx, domain, d) === 0
-            ? 0
-            : domain === "fitness"
-              ? sumMetric(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(d, -6), d)
-              : sumMetric(idx, domain, DOMAIN_META[domain].primaryMetric, addDays(d, -6), d)
-          : value;
-      cells[domain] = { completion, level: levelOf(completion), value, displayValue };
+  // Earliest year with ANY event — older years have nothing to show.
+  let earliestYear = currentYear;
+  for (const dayMap of idx.byDomainDate.values()) {
+    for (const dateKey of dayMap.keys()) {
+      const y = dateKey.slice(0, 4);
+      if (y < earliestYear) earliestYear = y;
     }
-    const completionAll = completionAllOn(idx, d, active);
-    days.push({
-      date: d,
-      completionAll,
-      levelAll: levelOf(completionAll),
-      learning: cells.learning,
-      english: cells.english,
-      coding: cells.coding,
-      productivity: cells.productivity,
-      fitness: cells.fitness,
-    });
   }
-  return { gridStart: sundayOnOrBefore(yearStart), days };
+
+  const years: Record<string, HeatmapYear> = {};
+  const availableYears: string[] = [];
+  for (let y = Number(earliestYear); y <= Number(currentYear); y++) {
+    const year = String(y);
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+    const days: HeatmapDay[] = [];
+    for (let d = yearStart; daysBetween(d, yearEnd) >= 0; d = addDays(d, 1)) {
+      const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
+      for (const domain of HEATMAP_DOMAINS) {
+        const completion = completionForDomain(idx, domain, d);
+        const meta = HEATMAP_META[domain];
+        const value = heatmapValueOn(idx, domain, d);
+        const displayValue =
+          meta.goalMode === "trailing7"
+            ? completionForDomain(idx, domain, d) === 0
+              ? 0
+              : domain === "fitness"
+                ? sumMetric(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(d, -6), d)
+                : sumMetric(idx, domain, DOMAIN_META[domain].primaryMetric, addDays(d, -6), d)
+            : value;
+        cells[domain] = { completion, level: levelOf(completion), value, displayValue };
+      }
+      const completionAll = completionAllOn(idx, d, active);
+      days.push({
+        date: d,
+        completionAll,
+        levelAll: levelOf(completionAll),
+        learning: cells.learning,
+        english: cells.english,
+        coding: cells.coding,
+        productivity: cells.productivity,
+        fitness: cells.fitness,
+      });
+    }
+    years[year] = { gridStart: sundayOnOrBefore(yearStart), days };
+    availableYears.push(year);
+  }
+
+  return { years, availableYears, currentYear };
 }
 
 /* ---- Me vs Me ---- */

@@ -29,7 +29,10 @@ export default async function ContributionPage() {
       />
 
       <Panel className="overflow-x-auto">
-        <ContributionHeatmap gridStart={heatmap.gridStart} days={heatmap.days} />
+        <ContributionHeatmap
+          gridStart={heatmap.years[heatmap.currentYear].gridStart}
+          days={heatmap.years[heatmap.currentYear].days}
+        />
       </Panel>
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">

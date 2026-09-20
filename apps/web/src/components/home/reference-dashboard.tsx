@@ -21,7 +21,7 @@ import { logSession } from "@/app/actions/log-session";
 export interface DashboardData {
   progress: GoalProgress;
   summaries: DomainSummary[];
-  heatmap: { gridStart: string; days: HeatmapDay[] };
+  heatmap: { years: Record<string, { gridStart: string; days: HeatmapDay[] }>; availableYears: string[]; currentYear: string };
   heatmapStats: HeatmapStats;
   today: TodayItem[];
   meVsMe: Record<WindowKey, MeVsMeWindow>;
@@ -76,8 +76,11 @@ function ActivityCard({ card }: { card: (typeof activityCards)[number] }) {
 
 type HeatFilter = "all" | "learning" | "english" | "coding" | "productivity" | "fitness";
 
-function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[]; stats: HeatmapStats; filter: HeatFilter; gridStart: string; locale: "en" | "zh" }) {
+function Heatmap({ years, availableYears, currentYear, year, stats, filter, locale }: { years: Record<string, { gridStart: string; days: HeatmapDay[] }>; availableYears: string[]; currentYear: string; year: string; stats: HeatmapStats; filter: HeatFilter; locale: "en" | "zh" }) {
   const [selected, setSelected] = useState<HeatmapDay | null>(null);
+  const yearData = years[year] ?? years[currentYear];
+  const days = yearData.days;
+  const gridStart = yearData.gridStart;
   const geometry = useMemo(
     () => buildGrid(gridStart, days.map((day) => day.date)),
     [gridStart, days]
@@ -261,6 +264,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
       : "dark"
   );
   const [heatFilter, setHeatFilter] = useState<HeatFilter>("all");
+  const [heatYear, setHeatYear] = useState<string>(data.heatmap.currentYear);
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
@@ -327,7 +331,11 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
         {cards.map((card) => <ActivityCard key={card.label} card={card} />)}
       </div>
       <div className="middle-grid">
-        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity", "fitness"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率", fitness: "健身" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career", fitness: "Fitness" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]"><ChevronLeft className="size-4" /><span className="rounded-[8px] border border-[var(--dash-border)] px-4 py-1.5">2026</span><ChevronRight className="size-4" /></div></div><Heatmap days={data.heatmap.days} stats={data.heatmapStats} filter={heatFilter} gridStart={data.heatmap.gridStart} locale={locale} /></Panel>
+        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity", "fitness"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率", fitness: "健身" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career", fitness: "Fitness" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]">
+  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i > 0) setHeatYear(data.heatmap.availableYears[i - 1]); }} disabled={data.heatmap.availableYears.indexOf(heatYear) <= 0} aria-label={locale === "zh" ? "上一年" : "Previous year"} className="disabled:opacity-30"><ChevronLeft className="size-4" /></button>
+  <span className="rounded-[8px] border border-[var(--dash-border)] px-4 py-1.5">{heatYear}</span>
+  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i < data.heatmap.availableYears.length - 1) setHeatYear(data.heatmap.availableYears[i + 1]); }} disabled={data.heatmap.availableYears.indexOf(heatYear) >= data.heatmap.availableYears.length - 1} aria-label={locale === "zh" ? "下一年" : "Next year"} className="disabled:opacity-30"><ChevronRight className="size-4" /></button>
+</div></div><Heatmap years={data.heatmap.years} availableYears={data.heatmap.availableYears} currentYear={data.heatmap.currentYear} year={heatYear} stats={data.heatmapStats} filter={heatFilter} locale={locale} /></Panel>
         <TodayCard items={data.today} completion={data.todayCompletion} action={data.nextAction} locale={locale} />
       </div>
       <div className="bottom-grid"><MeVsMe windows={data.meVsMe} locale={locale} /><GoalsCard progress={data.progress} locale={locale} /><InsightsCard insight={data.insight} trends={data.trends} gaps={data.gaps} locale={locale} /></div>

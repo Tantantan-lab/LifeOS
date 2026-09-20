@@ -315,13 +315,16 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
   const today = todayKey();
   const active = domainsWithData(idx, today);
 
-  // The heatmap shows the CURRENT YEAR (Jan 1 → today) — matching the
-  // year badge in the dashboard header. Older data still feeds stats,
-  // Me vs Me and insights; a year switcher is future work.
-  const yearStart = `${today.slice(0, 4)}-01-01`;
+  // The heatmap shows the FULL calendar year (Jan 1 → Dec 31) — matching
+  // the year badge in the dashboard header; future months render as empty
+  // cells. Older data still feeds stats, Me vs Me and insights; a year
+  // switcher is future work.
+  const year = today.slice(0, 4);
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
 
   const days: HeatmapDay[] = [];
-  for (let d = yearStart; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
+  for (let d = yearStart; daysBetween(d, yearEnd) >= 0; d = addDays(d, 1)) {
     const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
     for (const domain of HEATMAP_DOMAINS) {
       const completion = completionForDomain(idx, domain, d);

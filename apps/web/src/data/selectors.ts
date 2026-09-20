@@ -114,6 +114,17 @@ function dailySeries(idx: EventIndex, domain: Domain, metric: string, from: stri
   return out;
 }
 
+/** A day is "active" when ANY heatmap-domain event was logged — streaks
+ *  and active-day counts use raw activity, not completion: a trailing-7
+ *  window can stay >0 for days after the last logged day, which would
+ *  keep a streak alive on days where nothing actually happened. */
+function hasAnyEvent(idx: EventIndex, dateKey: string): boolean {
+  for (const domain of HEATMAP_DOMAINS) {
+    if (eventsOn(idx, domain, dateKey).length > 0) return true;
+  }
+  return false;
+}
+
 /** Heatmap domains that have ANY event in [to-29, to] — the data-aware
  *  "All" denominator keeps empty domains from dragging the average. */
 function domainsWithData(idx: EventIndex, to: string): Set<HeatmapDomain> {
@@ -495,21 +506,21 @@ export async function getHeatmapStats(): Promise<HeatmapStats> {
   let active90 = 0;
   let sum90 = 0;
   for (let i = 0; i < 90; i++) {
-    const c = completionAllOn(idx, addDays(today, -i), active);
-    sum90 += c;
-    if (c > 0) active90++;
+    const dateKey = addDays(today, -i);
+    sum90 += completionAllOn(idx, dateKey, active);
+    if (hasAnyEvent(idx, dateKey)) active90++;
   }
 
   let current = 0;
   for (let i = 0; i < 365; i++) {
-    if (completionAllOn(idx, addDays(today, -i), active) > 0) current++;
+    if (hasAnyEvent(idx, addDays(today, -i))) current++;
     else break;
   }
 
   let longest = 0;
   let run = 0;
   for (let d = DATASET_START; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
-    if (completionAllOn(idx, d, active) > 0) {
+    if (hasAnyEvent(idx, d)) {
       run++;
       longest = Math.max(longest, run);
     } else {
@@ -521,10 +532,9 @@ export async function getHeatmapStats(): Promise<HeatmapStats> {
     let activeDays = 0;
     let sumCompletion = 0;
     for (let d = DATASET_START; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
-      const c = completionForDomain(idx, domain, d);
-      if (c > 0) {
+      if (eventsOn(idx, domain, d).length > 0) {
         activeDays++;
-        sumCompletion += c;
+        sumCompletion += completionForDomain(idx, domain, d);
       }
     }
     return {

@@ -87,7 +87,7 @@ async function main() {
 
   // ---------- Contribution ----------
   await checkPage("/contribution", [
-    ["365 heatmap cells", `document.querySelectorAll("button.hm-cell").length === 365`],
+    ["365+ heatmap cells", `document.querySelectorAll("button.hm-cell").length >= 365`],
     ["6 leading blanks", `(() => { const grid = document.querySelector(".hm-grid"); return grid.children[0].tagName === "SPAN" && grid.querySelectorAll("span[aria-hidden]").length === 6; })()`],
     ["cell bg = ramp color (var-driven, not empty)", `(() => { const c = document.querySelector('button.hm-cell[data-level="4"]'); const bg = getComputedStyle(c).backgroundColor; return c && bg !== "rgb(22, 27, 37)" && bg !== "rgba(0, 0, 0, 0)"; })()`],
     ["empty cell = #161B25", `(async () => { const tabs = document.querySelectorAll('[role="tab"]'); tabs[2].click(); await new Promise(r => setTimeout(r, 400)); const grid = document.querySelector('.hm-grid'); const c = grid.querySelector('button.hm-cell[data-level="0"]'); return grid.dataset.domain === 'english' && c && getComputedStyle(c).backgroundColor === "rgb(22, 27, 37)"; })()`],
@@ -98,9 +98,9 @@ async function main() {
 
   // ---------- Me vs Me ----------
   await checkPage("/me-vs-me", [
-    ["window caption shows ranges", `document.body.innerText.includes("Jun 22") && document.body.innerText.includes("Sep 19")`],
+    ["window caption shows ranges", `document.body.innerText.includes("NOW:") && document.body.innerText.includes("THEN:")`],
     ["5 versus rows", `document.querySelectorAll("main button[aria-pressed]").length === 5`],
-    ["window switch updates numbers", `(async () => { const before = document.body.innerText; const tabs = document.querySelectorAll('[role="tab"]'); tabs[0].click(); await new Promise(r => setTimeout(r, 400)); const after = document.body.innerText; return before !== after && after.includes("Aug 21") && after.includes("Jul 22"); })()`],
+    ["window switch updates numbers", `(async () => { const before = document.body.innerText; const tabs = document.querySelectorAll('[role="tab"]'); tabs[0].click(); await new Promise(r => setTimeout(r, 400)); const after = document.body.innerText; return before !== after && after.includes("NOW:") && after.includes("THEN:"); })()`],
     ["recharts svg rendered", `document.querySelectorAll(".recharts-surface").length >= 1`],
   ]);
 

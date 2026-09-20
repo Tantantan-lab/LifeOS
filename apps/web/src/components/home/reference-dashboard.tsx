@@ -166,6 +166,19 @@ const zhStreak: Record<string, string> = {
 };
 const zhLabel = (en: string) => zhLabels[en] ?? en;
 
+/** Converts selector-formatted value labels ("1h 59m", "10 words") to zh. */
+function zhValue(label: string): string {
+  return label
+    .replace(/^(\d+)h (\d+)m$/, "$1小时$2分钟")
+    .replace(/^(\d+)h$/, "$1小时")
+    .replace(/^(\d+)m$/, "$1分钟")
+    .replace(/^(\d+) words$/, "$1 词")
+    .replace(/^(\d+) commits?$/, "$1 次提交")
+    .replace(/^(\d+) tasks?$/, "$1 项任务")
+    .replace(/^Band (\S+)$/, "模考 $1")
+    .replace(/^(\d+) sessions?$/, "$1 次");
+}
+
 function TodayCard({ items, completion, action, locale }: { items: TodayItem[]; completion: number | null; action: NextBestAction | null; locale: "en" | "zh" }) {
   const [isPending, startTransition] = useTransition();
   const [logged, setLogged] = useState(false);
@@ -184,7 +197,7 @@ function TodayCard({ items, completion, action, locale }: { items: TodayItem[]; 
       <div className="flex items-center justify-between"><h2 className="text-[18px] font-semibold text-white">{locale === "zh" ? "今天" : "Today"}</h2><SmallLink href="/today">{locale === "zh" ? "查看详情" : "View details"}</SmallLink></div>
       <div className="mt-3 grid grid-cols-[154px_1fr] items-center gap-6">
         <div className="goal-ring" style={{ "--goal-pct": `${pct}%` } as React.CSSProperties}><div><strong>{pct}%</strong><span>{locale === "zh" ? "今日目标" : "Daily Goal"}</span></div></div>
-        <div className="space-y-3">{items.length === 0 ? <div className="text-[12px] text-[#8e98a8]">{locale === "zh" ? "今天还没有记录" : "No entries yet today"}</div> : items.slice(0, 5).map((item, index) => <div key={`${item.time}-${item.metricLabel}-${index}`} className="grid grid-cols-[20px_1fr_auto] items-center gap-2 text-[13px]"><span className={`today-check accent-${domainAccent[item.domain]}`}><Check className="size-3" /></span><span className="truncate text-[#c5cbd6]">{locale === "zh" ? zhLabel(item.metricLabel) : item.metricLabel}</span><span className="text-[#e8ebf0]">{item.valueLabel}</span></div>)}</div>
+        <div className="space-y-3">{items.length === 0 ? <div className="text-[12px] text-[#8e98a8]">{locale === "zh" ? "今天还没有记录" : "No entries yet today"}</div> : items.slice(0, 5).map((item, index) => <div key={`${item.time}-${item.metricLabel}-${index}`} className="grid grid-cols-[20px_1fr_auto] items-center gap-2 text-[13px]"><span className={`today-check accent-${domainAccent[item.domain]}`}><Check className="size-3" /></span><span className="truncate text-[#c5cbd6]">{locale === "zh" ? zhLabel(item.metricLabel) : item.metricLabel}</span><span className="text-[#e8ebf0]">{locale === "zh" ? zhValue(item.valueLabel) : item.valueLabel}</span></div>)}</div>
       </div>
       {action && <div className="mt-4 grid grid-cols-[44px_1fr_34px] items-start gap-3 rounded-[10px] bg-[#151b25] p-3.5">
         <span className="flex size-10 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#376eff] to-[#6675ff] text-white shadow-[0_8px_20px_#3162ff33]"><PenLine className="size-4" /></span>

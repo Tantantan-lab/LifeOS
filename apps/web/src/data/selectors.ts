@@ -674,7 +674,26 @@ export async function getTodaySnapshot(): Promise<TodayItem[]> {
   for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
     todays.push(...eventsOn(idx, domain, today));
   }
-  return todays
+
+  // Aggregate by (domain, metric): one row per metric with the summed
+  // value — the Today card reads as a summary, not a noisy event log.
+  const merged = new Map<string, LifeEvent>();
+  for (const e of todays) {
+    const key = `${e.domain}:${e.metric}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.value += e.value;
+      if (e.timestamp > existing.timestamp) {
+        existing.timestamp = e.timestamp;
+        existing.source = e.source;
+        existing.confidence = e.confidence;
+      }
+    } else {
+      merged.set(key, { ...e });
+    }
+  }
+
+  return [...merged.values()]
     .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
     .map((e) => ({
       time: formatTime(e.timestamp),

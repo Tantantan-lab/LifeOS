@@ -22,12 +22,12 @@ export function GoalProgressHero({ progress }: { progress: GoalProgress }) {
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="num text-hero font-semibold leading-none text-fg">
-              {progress.overall}
+              {progress.overall === null ? "—" : progress.overall}
             </span>
             <span className="text-h1 text-fg-secondary">%</span>
             <span className="text-h2 text-fg-secondary">{GOAL_PROGRESS_READY}</span>
           </div>
-          <ProgressBar value={progress.overall / 100} className="mt-4 max-w-xs" />
+          <ProgressBar value={(progress.overall ?? 0) / 100} className="mt-4 max-w-xs" />
           <div className="mt-3 text-micro text-fg-muted">
             {progress.updatedLabel} · {progress.evidenceDays} days of evidence
           </div>

@@ -384,13 +384,17 @@ export async function getMeVsMeAll(): Promise<Record<WindowKey, MeVsMeWindow>> {
 
 /* ---- Goal progress / benchmark / gap ---- */
 
-function weightedReadiness(): number {
-  const total = SKILLS.reduce((s, x) => s + x.weight, 0);
-  return SKILLS.reduce((s, x) => s + x.score * x.weight, 0) / total;
+/** Weighted readiness over ASSESSED skills only; null when none assessed. */
+function weightedReadiness(): number | null {
+  const assessed = SKILLS.filter((x) => x.score !== null);
+  if (assessed.length === 0) return null;
+  const total = assessed.reduce((s, x) => s + x.weight, 0);
+  return assessed.reduce((s, x) => s + (x.score ?? 0) * x.weight, 0) / total;
 }
 
 /** Readiness bands — the Level badge, not a grade of the person. */
-export function levelOfReadiness(overall: number): number {
+export function levelOfReadiness(overall: number | null): number {
+  if (overall === null) return 1;
   if (overall < 50) return 1;
   if (overall < 80) return 2;
   if (overall < 95) return 3;
@@ -408,12 +412,8 @@ export function statusOfSkill(score: number | null, target: number): string {
 export async function getGoalProgress(): Promise<GoalProgress> {
   const idx = await getEventIndex();
   const today = todayKey();
-  const overall = Math.round(weightedReadiness());
-
-  // Dev-only guard: the hero number is a spec'd value (72%); drift must fail loudly.
-  if (process.env.NODE_ENV !== "production" && overall !== 72) {
-    throw new Error(`GoalProgress drift: weighted readiness = ${overall}, expected 72`);
-  }
+  const readiness = weightedReadiness();
+  const overall = readiness === null ? null : Math.round(readiness);
 
   const active = domainsWithData(idx, today);
   const evidenceDays = (() => {
@@ -440,14 +440,15 @@ export async function getBenchmarks(): Promise<SkillBenchmark[]> {
     score: s.score,
     target: s.target,
     weight: s.weight,
-    gap: s.target - s.score,
+    gap: s.score === null ? null : s.target - s.score,
     evidence: s.evidence,
     status: statusOfSkill(s.score, s.target),
   }));
 }
 
 export async function getGaps(): Promise<GapItem[]> {
-  const scored = SKILLS.map((s) => ({ skill: s.skill, gap: s.target - s.score }))
+  const scored = SKILLS.filter((s) => s.score !== null)
+    .map((s) => ({ skill: s.skill, gap: s.target - (s.score ?? 0) }))
     .filter((x) => x.gap > 0)
     .sort((a, b) => b.gap - a.gap);
 
@@ -457,6 +458,17 @@ export async function getGaps(): Promise<GapItem[]> {
     gapLabel: `${x.gap} pts`,
     note: `~${Math.ceil(x.gap / GAP_PACE_POINTS_PER_WEEK)} weeks at your current pace`,
   }));
+
+  // Unassessed skills follow the scored gaps — honest "establish a
+  // baseline" entries, never fabricated scores.
+  for (const s of SKILLS.filter((x) => x.score === null)) {
+    items.push({
+      rank: items.length + 1,
+      skill: s.skill,
+      gapLabel: "Not assessed",
+      note: "Self-assess or connect a data source to establish a baseline.",
+    });
+  }
 
   items.push({
     rank: items.length + 1,

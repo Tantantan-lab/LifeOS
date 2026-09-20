@@ -180,17 +180,18 @@ export const WINDOWS: Record<
 export const WINDOW_ORDER: WindowKey[] = ["30D", "90D", "1Y", "Beginning"];
 
 /**
- * Overseas Engineer readiness. Weights are chosen so the weighted mean is
- * exactly 71.8 → displays 72 — asserted in selectors.ts so it cannot drift.
+ * Overseas Engineer readiness. Scores are REAL assessments only — all null
+ * until real evidence arrives (self-assessment input or connected data);
+ * targets stay as the benchmark coordinates. No invented numbers.
  */
 export const TARGET_LABEL = "Overseas Engineer";
 
 export const SKILLS = [
-  { skill: "Python", score: 86, target: 86, weight: 0.2, evidence: "12+ projects · daily driver" },
-  { skill: "Linux", score: 80, target: 84, weight: 0.15, evidence: "daily shell & server ops" },
-  { skill: "Docker", score: 74, target: 80, weight: 0.15, evidence: "containerized 8 apps" },
-  { skill: "Kubernetes", score: 50, target: 85, weight: 0.25, evidence: "CKA prep · week 3" },
-  { skill: "English", score: 76, target: 90, weight: 0.25, evidence: "IELTS mock 6.0 · 57 words/day" },
+  { skill: "Python", score: null, target: 86, weight: 0.2, evidence: "Not assessed yet" },
+  { skill: "Linux", score: null, target: 84, weight: 0.15, evidence: "Not assessed yet" },
+  { skill: "Docker", score: null, target: 80, weight: 0.15, evidence: "Not assessed yet" },
+  { skill: "Kubernetes", score: null, target: 85, weight: 0.25, evidence: "Not assessed yet" },
+  { skill: "English", score: null, target: 90, weight: 0.25, evidence: "Not assessed yet" },
 ] as const;
 
 /** Present in the gap list but not yet scored. */

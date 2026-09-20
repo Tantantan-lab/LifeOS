@@ -178,8 +178,9 @@ export interface SkillBenchmark {
 }
 
 export interface GoalProgress {
-  /** Weighted readiness, e.g. 72. Never presented as a "Life Score". */
-  overall: number;
+  /** Weighted readiness — null when no skill has been assessed yet.
+   *  Never presented as a "Life Score". */
+  overall: number | null;
   /** Level band: 1 = <50, 2 = 50-79, 3 = 80-94, 4 = 95+. */
   level: number;
   targetLabel: string;

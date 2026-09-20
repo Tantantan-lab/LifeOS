@@ -43,9 +43,11 @@ export function BenchmarkBars({ skills }: { skills: SkillBenchmark[] }) {
               </div>
               <span className="num w-52 shrink-0 text-right text-meta text-fg-muted">
                 You {skill.score ?? "—"} · Target {skill.target} ·{" "}
-                {skill.gap === 0
-                  ? "Met"
-                  : `Gap ${skill.gap} pts`}
+                {skill.gap === null
+                  ? "Not assessed"
+                  : skill.gap === 0
+                    ? "Met"
+                    : `Gap ${skill.gap} pts`}
               </span>
             </div>
           );

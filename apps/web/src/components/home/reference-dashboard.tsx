@@ -139,7 +139,7 @@ function GoalsCard({ progress, locale }: { progress: GoalProgress; locale: "en" 
     <Panel className="bottom-card">
       <div className="flex items-center justify-between"><h2>{locale === "zh" ? "目标 / 等级" : "Goals / Level"}</h2><SmallLink href="/goals">{locale === "zh" ? "查看更多" : "View more"}</SmallLink></div>
       <div className="mt-5 flex items-center gap-3"><span className="flex size-9 items-center justify-center rounded-[9px] bg-[#18243b] text-[#5687ff]"><Target className="size-[17px]" /></span><div className="min-w-0 flex-1"><div className="text-[12px] font-medium text-white">{progress.targetLabel}</div><div className="text-[11px] text-white">{locale === "zh" ? "等级" : "Level"} {progress.level}</div></div></div>
-      <div className="ml-12 mt-2 flex items-center gap-3"><span className="h-2 flex-1 overflow-hidden rounded-full bg-[#202838]"><span className="block h-full rounded-full bg-gradient-to-r from-[#4383ff] to-[#666eff]" style={{ width: `${progress.overall}%` }} /></span><span className="text-[11px]">{progress.overall}%</span></div>
+      <div className="ml-12 mt-2 flex items-center gap-3"><span className="h-2 flex-1 overflow-hidden rounded-full bg-[#202838]"><span className="block h-full rounded-full bg-gradient-to-r from-[#4383ff] to-[#666eff]" style={{ width: `${progress.overall ?? 0}%` }} /></span><span className="text-[11px]">{progress.overall ?? "—"}%</span></div>
       <div className="mt-4 space-y-2.5">{progress.skills.map((skill) => { const done = skill.status === "Completed" || skill.status === "Proficient"; return <div key={skill.skill} className="grid grid-cols-[16px_1fr_88px_18px_92px] items-center gap-2 text-[11px]"><span className={done ? "text-[#50d78a]" : "text-[#71829a]"}>{done ? <Check className="size-4" /> : <Circle className="size-4" />}</span><span className="text-[#c6ccd6]">{skill.skill}</span><span>{skill.score === null ? "—" : `${skill.score} / ${skill.target}`}</span><span className={done ? "text-[#52da89]" : "text-[#7c8fa7]"}>{done ? <Check className="size-4" /> : <Circle className="size-4" />}</span><span className="text-[#aab2bf]">{skill.status}</span></div>; })}</div>
     </Panel>
   );
@@ -167,15 +167,30 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
   const { locale, setLocale } = useLocale();
   const [heatFilter, setHeatFilter] = useState<HeatFilter>("all");
   const byDomain = useMemo(() => Object.fromEntries(data.summaries.map((summary) => [summary.domain, summary])), [data.summaries]);
+  const workoutRow = data.meVsMe["30D"].rows.find((row) => row.key === "workout");
   const cards = activityCards.map((card) => {
     const domain = card.label === "Study" ? "learning" : card.label === "English" ? "english" : card.label === "Coding" ? "coding" : card.label === "Sleep" ? "health" : null;
     const summary = domain ? byDomain[domain] : null;
-    const workout = data.today.find((item) => item.domain === "health" && item.metricLabel.toLowerCase().includes("workout"));
+    // health today items are Sleep + workout types — a workout item is any
+    // health item whose label is not "Sleep".
+    const workout = data.today.find(
+      (item) => item.domain === "health" && item.metricLabel !== "Sleep"
+    );
     return {
       ...card,
       label: locale === "zh" ? ({ Study: "学习", English: "英语", Fitness: "健身", Coding: "编程", Sleep: "睡眠" }[card.label] ?? card.label) : card.label,
-      value: card.label === "Fitness" ? (workout?.valueLabel ?? card.value) : (summary?.headline ?? card.value),
-      change: summary ? pct(summary.deltaPct) : card.change,
+      value:
+        card.label === "Fitness"
+          ? (workout?.valueLabel ?? "—")
+          : (summary?.headline ?? card.value),
+      change:
+        card.label === "Fitness"
+          ? workoutRow
+            ? pct(workoutRow.deltaPct)
+            : card.change
+          : summary
+            ? pct(summary.deltaPct)
+            : card.change,
       bars: summary?.spark.length ? summary.spark.slice(-12).map((value) => {
         const max = Math.max(...summary.spark, 1);
         return Math.max(18, Math.round((value / max) * 100));
@@ -192,7 +207,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
         <div className="hidden self-stretch py-1 xl:block"><div className="flex items-start justify-end gap-4"><Search className="mt-2 size-5 text-[#d3d8e0]" /><div className="flex items-start gap-3"><span className="size-8 rounded-full bg-[radial-gradient(circle_at_55%_40%,#7e8d86_0_25%,#574934_28%_55%,#202a30_58%)]" /><span className="text-[11px] leading-4 text-[#9098a6]">{locale === "zh" ? <>打造你想要的<br />人生。</> : <>Build the life<br />you want.</>}</span></div></div><div className="mt-3 rounded-[10px] bg-[#121821] px-5 py-4 text-[11px] leading-5 text-[#9ea7b5]">{locale === "zh" ? <>每天进步一点点&nbsp; —<br />终会积少成多。</> : <>A little progress each day&nbsp; —<br />adds up to big results.</>}</div></div>
       </header>
       <div className="top-metrics-grid">
-        <Panel className="progress-card"><div className="flex items-center gap-2 text-[13px] text-white">{locale === "zh" ? "进度指数" : "Progress Index"} <Info className="size-3.5 text-[#828b9a]" /></div><div className="mt-3 flex items-start gap-4"><span className="text-[55px] font-semibold leading-none tracking-[-0.045em] text-white">{data.progress.overall}</span><div><span className={`flex items-center gap-1 text-[15px] ${progressDelta < 0 ? "text-[#ef766c]" : "text-[#52dc8a]"}`}><ArrowUp className="size-4" />{progressDelta > 0 ? "+" : ""}{progressDelta}%</span><span className="mt-1 block text-[11px] text-[#919aaa]">{locale === "zh" ? "对比 90 天前" : "vs. 90 days ago"}</span></div></div><svg className="absolute bottom-3 left-6 h-14 w-[calc(100%-48px)]" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5868ff" stopOpacity=".35"/><stop offset="1" stopColor="#5868ff" stopOpacity="0"/></linearGradient></defs><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24 L280 56 L0 56Z" fill="url(#area)"/><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24" fill="none" stroke="#6570ff" strokeWidth="2"/></svg></Panel>
+        <Panel className="progress-card"><div className="flex items-center gap-2 text-[13px] text-white">{locale === "zh" ? "进度指数" : "Progress Index"} <Info className="size-3.5 text-[#828b9a]" /></div><div className="mt-3 flex items-start gap-4"><span className="text-[55px] font-semibold leading-none tracking-[-0.045em] text-white">{data.progress.overall ?? "—"}</span><div><span className={`flex items-center gap-1 text-[15px] ${progressDelta < 0 ? "text-[#ef766c]" : "text-[#52dc8a]"}`}><ArrowUp className="size-4" />{progressDelta > 0 ? "+" : ""}{progressDelta}%</span><span className="mt-1 block text-[11px] text-[#919aaa]">{locale === "zh" ? "对比 90 天前" : "vs. 90 days ago"}</span></div></div><svg className="absolute bottom-3 left-6 h-14 w-[calc(100%-48px)]" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5868ff" stopOpacity=".35"/><stop offset="1" stopColor="#5868ff" stopOpacity="0"/></linearGradient></defs><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24 L280 56 L0 56Z" fill="url(#area)"/><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24" fill="none" stroke="#6570ff" strokeWidth="2"/></svg></Panel>
         {cards.map((card) => <ActivityCard key={card.label} card={card} />)}
       </div>
       <div className="middle-grid">

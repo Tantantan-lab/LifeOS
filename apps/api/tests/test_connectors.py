@@ -92,7 +92,8 @@ def test_weread_daily_points(monkeypatch):
                 200,
                 {
                     "errcode": 0,
-                    "dailyReadTimes": {
+                    # monthly + baseTime contract: day-ts → seconds
+                    "readTimes": {
                         "1789747200": 2700,  # 45 min on 2026-09-19
                         "1789660800": 3600,  # 60 min on 2026-09-18
                     },
@@ -101,11 +102,14 @@ def test_weread_daily_points(monkeypatch):
         ],
     )
 
-    points = _run(WereadConnector().fetch(date(2026, 9, 1), date(2026, 9,19)))
+    points = _run(WereadConnector().fetch(date(2026, 9, 1), date(2026, 9, 19)))
     method, url, kw = client.calls[0]
     assert url == "https://i.weread.qq.com/api/agent/gateway"
     assert kw["headers"]["Authorization"] == "Bearer wrk-test"
     assert kw["json"]["skill_version"] == "1.0.4"
+    assert kw["json"]["mode"] == "monthly"
+    # baseTime must be the Shanghai epoch of 2026-09-01 00:00 +08:00
+    assert kw["json"]["baseTime"] == 1788192000
     assert "params" not in kw["json"]  # body must be flat
 
     by_day = {p.local_date.isoformat(): p for p in points}

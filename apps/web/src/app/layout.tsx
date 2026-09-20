@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,14 +41,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ThemeProvider>
-          <div className="flex min-h-screen">
-            <AppSidebar />
-            <main className="min-w-0 flex-1">
-              <div className="mx-auto w-full max-w-[1560px] px-6 py-6 lg:px-8">
-                {children}
-              </div>
-            </main>
-          </div>
+          <LocaleProvider>
+            <div className="flex min-h-screen flex-col md:flex-row">
+              <AppSidebar />
+              <main className="min-w-0 flex-1">
+                <div className="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-7 lg:py-5">
+                  {children}
+                </div>
+              </main>
+            </div>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

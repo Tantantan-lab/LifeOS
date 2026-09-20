@@ -53,8 +53,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - apps/api/.env
+    # Credentials come from the bind-mounted apps/api/.env (pydantic-settings,
+    # env_file=".env") — NOT from env_file here: env_file values are baked
+    # into the container at create time and an empty-but-set var would
+    # override live edits to the file (env vars beat env_file in
+    # pydantic-settings precedence).
     environment:
       DATABASE_URL: postgresql://lifeos:lifeos@db:5432/lifeos
     ports:

@@ -18,20 +18,14 @@ export function NavItem({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm transition-colors",
+        "relative flex items-center gap-3 rounded-[8px] px-4 py-2.5 text-[13px] transition-colors",
         active
-          ? "bg-surface-2 text-fg"
+          ? "bg-[#1b222e] text-fg"
           : "text-fg-secondary hover:bg-surface-2/60 hover:text-fg"
       )}
     >
-      {active && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-brand"
-        />
-      )}
       <Icon
-        className={cn("size-4 shrink-0", active ? "text-brand" : "text-fg-muted")}
+        className={cn("size-4 shrink-0", active ? "text-[#dce3ed]" : "text-[#8f99aa]")}
       />
       <span className="truncate">{label}</span>
     </Link>

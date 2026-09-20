@@ -4,9 +4,10 @@ POST https://i.weread.qq.com/api/agent/gateway with `Authorization: Bearer
 wrk-...` (key created by scanning the QR at https://weread.qq.com/r/weread-skills).
 Body is FLAT: business params at the top level, never nested under `params`.
 
-Data: /readdata/detail (mode=annually) returns dailyReadTimes — day ts →
-SECONDS. Fallback: mode=monthly buckets (coarse granularity, tagged in
-metadata) when daily data is absent.
+Data: /readdata/detail (mode=monthly + baseTime) returns readTimes — a
+dict of day-ts → SECONDS for that month. baseTime accepts historical
+period starts, so paging month by month recovers daily data for the
+whole window. Verified live against the gateway (2026-09).
 
 Probe the live API contract before the first sync:
 
@@ -71,20 +72,33 @@ class WereadConnector:
         if not settings.weread_api_key:
             raise ValueError("WEREAD_API_KEY is not set — add it to apps/api/.env")
 
+        # The official contract: mode=monthly + baseTime returns readTimes —
+        # a dict of day-ts → seconds for that month. baseTime accepts
+        # historical period starts, so paging month by month recovers DAILY
+        # data for the whole requested window (verified live: the gateway
+        # returns a dict, never a list).
+        points: list[DailyPoint] = []
         async with httpx.AsyncClient(timeout=60) as client:
-            data = await self._call(client, API_READDATA, mode="annually", baseTime=0)
-
-            daily = data.get("dailyReadTimes") or {}
-            if daily:
-                return self._points_from_daily(daily, since, until, data)
-
-            # Fallback: monthly buckets (coarse — one point per bucket start)
-            monthly = await self._call(client, API_READDATA, mode="monthly", baseTime=0)
-            buckets = monthly.get("readTimes") or {}
-            return self._points_from_buckets(buckets, since, until)
+            month = date(since.year, since.month, 1)
+            while month <= until:
+                base_time = int(
+                    datetime(month.year, month.month, 1, tzinfo=SHANGHAI).timestamp()
+                )
+                data = await self._call(
+                    client, API_READDATA, mode="monthly", baseTime=base_time
+                )
+                daily = data.get("readTimes") or {}
+                points.extend(self._points_from_daily(daily, since, until))
+                # next month
+                month = (
+                    date(month.year + 1, 1, 1)
+                    if month.month == 12
+                    else date(month.year, month.month + 1, 1)
+                )
+        return points
 
     def _points_from_daily(
-        self, daily: dict, since: date, until: date, raw: dict
+        self, daily: dict, since: date, until: date
     ) -> list[DailyPoint]:
         points: list[DailyPoint] = []
         for ts, seconds in sorted(daily.items()):
@@ -108,31 +122,6 @@ class WereadConnector:
             )
         return points
 
-    def _points_from_buckets(
-        self, buckets: dict, since: date, until: date
-    ) -> list[DailyPoint]:
-        """Coarse mode: each bucket (week/month) lands on its start date."""
-        points: list[DailyPoint] = []
-        for ts, seconds in sorted(buckets.items()):
-            d = _ts_to_date(ts)
-            if not (since <= d <= until):
-                continue
-            minutes = round(float(seconds) / 60)
-            if minutes <= 0:
-                continue
-            points.append(
-                DailyPoint(
-                    local_date=d,
-                    domain="learning",
-                    metric="learning.reading.minutes",
-                    value=float(minutes),
-                    unit="min",
-                    source="weread",
-                    confidence=0.9,
-                    metadata={"granularity": "coarse", "seconds": float(seconds)},
-                )
-            )
-        return points
 
 
 async def _list_apis() -> None:

@@ -59,8 +59,11 @@ class MaimemoConnector:
                 progress = await self._post(client, "/study/get_study_progress", {})
                 finished = (progress.get("progress") or {}).get("finished", 0)
                 if finished:
+                    # `until` is the connector's effective "today". Keeping
+                    # the override inside the requested window also makes
+                    # scheduled/replayed syncs deterministic across timezones.
                     today_override = (
-                        date.today(),
+                        until,
                         {
                             "words": finished,
                             "target": (progress.get("progress") or {}).get("total"),

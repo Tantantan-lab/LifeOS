@@ -101,10 +101,10 @@
 
 /* ---- dark theme overrides (html.dark) ---- */
 html.dark {
-  --color-bg: #0b0e14;
-  --color-surface-1: #11151d;
-  --color-surface-2: #161b25;
-  --color-border: #242a36;
+  --color-bg: #090d12;
+  --color-surface-1: #10151c;
+  --color-surface-2: #1a202b;
+  --color-border: #222a35;
 
   --color-fg: #f4f6f8;
   --color-fg-secondary: #a1a8b3;

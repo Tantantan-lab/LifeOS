@@ -55,10 +55,6 @@ interface DbEventRow {
 
 async function fetchAllEvents(userId: string): Promise<LifeEvent[]> {
   await connection();
-  // ~2200 rows/year — one query is fine; aggregation pushdown is M4.
-  // local_date::text is essential: node-postgres parses `date` columns
-  // into JS Date objects, which silently break Map-key lookups by the
-  // "YYYY-MM-DD" date strings the rest of the app uses.
   const { rows } = await db().query(
     `select event_id, user_id, local_date::text as local_date, local_time,
             domain, metric, value, unit, source, confidence, metadata

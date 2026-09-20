@@ -7,12 +7,14 @@ rows; mock rows (event_id without the conn: prefix) are never touched.
 """
 
 import json
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import asyncpg
 
 from .config import settings
 from .models import DailyPoint
+
+SHANGHAI = timezone(timedelta(hours=8))
 
 _pool: asyncpg.Pool | None = None
 _catalog: dict[str, str] | None = None  # metric → domain
@@ -61,7 +63,13 @@ async def upsert_events(points: list[DailyPoint], since: date, until: date) -> i
                         f"metric {p.metric} belongs to {expected_domain}, got {p.domain}"
                     )
                 event_id = f"conn:{p.source}:{p.metric}:{p.local_date.isoformat()}"
-                timestamp = f"{p.local_date.isoformat()}T{p.default_hour}:00+08:00"
+                # asyncpg needs real datetime objects, not ISO strings.
+                hour = int(p.default_hour[:2]) if ":" in p.default_hour else int(p.default_hour)
+                minute = int(p.default_hour[3:5]) if ":" in p.default_hour else 0
+                timestamp = datetime(
+                    p.local_date.year, p.local_date.month, p.local_date.day,
+                    hour, minute, tzinfo=SHANGHAI,
+                )
                 await con.execute(
                     """
                     insert into events
@@ -90,7 +98,7 @@ async def upsert_events(points: list[DailyPoint], since: date, until: date) -> i
                    and local_date between $3 and $4
                    and event_id <> all($5::text[])
                 """,
-                user_id, points[0].source, since.isoformat(), until.isoformat(), keys,
+                user_id, points[0].source, since, until, keys,
             )
 
             # data_sources touch (non-secret metadata only)

@@ -145,7 +145,7 @@ def test_maimemo_bucketing(monkeypatch):
             # 1) get_study_progress (today, authoritative) — data envelope
             FakeResponse(
                 200,
-                {"errors": [], "success": True, "data": {"progress": {"finished": 51, "total": 80, "study_time": 600000}}},
+                {"errors": [], "success": True, "data": {"progress": {"finished": 51, "total": 80, "study_time": 960000}}},
             ),
             # 2) query_study_records page 1 — data envelope
             FakeResponse(
@@ -175,12 +175,17 @@ def test_maimemo_bucketing(monkeypatch):
     assert url == "https://open.maimemo.com/open/api/v1/memo/study/query_study_records"
     assert "start" not in kw["json"]["next_study_date"]
 
-    by_day = {p.local_date.isoformat(): p for p in points}
+    by_day = {p.local_date.isoformat(): p for p in points if p.metric == "english.words.reviewed"}
     # 09-19: progress (51) overrides the bucket (2)
     assert by_day["2026-09-19"].value == 51
     assert by_day["2026-09-19"].metadata["method"] == "progress"
     assert by_day["2026-09-18"].value == 1
     assert "2026-08-01" not in by_day
+    # real study_time → english.minutes point for today (16 min)
+    minutes = [p for p in points if p.metric == "english.minutes"]
+    assert len(minutes) == 1
+    assert minutes[0].value == 16
+    assert minutes[0].metadata["method"] == "progress"
 
 
 # ---------------------------------------------------------------- ticktick

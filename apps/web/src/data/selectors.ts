@@ -657,7 +657,12 @@ const METRIC_LABELS: Record<string, (e: LifeEvent) => string> = {
   "learning.reading.minutes": () => "Reading",
   "learning.video.minutes": () => "Video",
   "english.words.reviewed": () => "Words reviewed",
-  "english.minutes": (e) => (e.metadata.activity === "listening" ? "Listening" : "Speaking"),
+  "english.minutes": (e) =>
+    e.source === "maimemo"
+      ? "Vocabulary time"
+      : e.metadata.activity === "listening"
+        ? "Listening"
+        : "Speaking",
   "english.ielts.mock.band": () => "IELTS mock",
   "health.workout.session": (e) => String(e.metadata.type),
   "health.sleep.minutes": () => "Sleep",

@@ -31,7 +31,7 @@
      Light defaults on :root-equivalent; dark overrides via html.dark
      below the components block. */
   .life-dashboard { @apply space-y-3.5; }
-  .dashboard-topbar { @apply grid min-h-[116px] grid-cols-[1fr_auto] items-center gap-8 xl:grid-cols-[1fr_auto_270px]; }
+  .dashboard-topbar { @apply grid min-h-[116px] grid-cols-[1fr_auto] items-center gap-8 rounded-[10px] border px-5 py-4 xl:grid-cols-[1fr_auto_270px]; border-color: var(--dash-border); background: var(--dash-panel); box-shadow: inset 0 1px 0 var(--dash-panel-highlight); }
   .dashboard-topbar h1 { @apply text-[32px] font-semibold tracking-[-0.03em]; color: var(--dash-fg); }
   .dashboard-topbar p { @apply mt-0.5 text-[16px]; color: var(--dash-fg-2); }
   .life-panel { @apply rounded-[10px] border; border-color: var(--dash-border); background: var(--dash-panel); box-shadow: inset 0 1px 0 var(--dash-panel-highlight); }

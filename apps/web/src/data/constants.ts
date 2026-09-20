@@ -145,6 +145,7 @@ export const VERSUS_ROWS: {
   { key: "study", domain: "learning", metric: "learning.study.minutes", label: "Study time", aggregation: "avg", format: "duration", unitLabel: "/day" },
   { key: "reading", domain: "learning", metric: "learning.reading.minutes", label: "Reading", aggregation: "avg", format: "duration", unitLabel: "/day" },
   { key: "words", domain: "english", metric: "english.words.reviewed", label: "Words reviewed", aggregation: "avg", format: "count", unitLabel: "/day" },
+  { key: "english-time", domain: "english", metric: "english.minutes", label: "Vocabulary time", aggregation: "avg", format: "duration", unitLabel: "/day" },
   { key: "coding", domain: "coding", metric: "coding.minutes", label: "Coding", aggregation: "sum", format: "hours1", unitLabel: "" },
   { key: "workout", domain: "health", metric: "health.workout.session", label: "Workouts", aggregation: "sum", format: "count", unitLabel: "sessions" },
   { key: "sleep", domain: "health", metric: "health.sleep.minutes", label: "Sleep", aggregation: "avg", format: "duration", unitLabel: "/night" },

@@ -79,12 +79,18 @@ class MaimemoConnector:
         # history bucket (which also counts today's most-recent reviews).
         # `until` is the connector's effective "today", keeping scheduled
         # replays deterministic across timezones.
+        # study_time (ms) is the REAL today duration → english.minutes.
+        # Historical days have no per-day duration in the API — we never
+        # estimate it (no invented metrics): live daily syncs accumulate
+        # real minutes over time.
         today_override: tuple[date, dict] | None = None
+        today_minutes: float | None = None
 
         async with httpx.AsyncClient(timeout=60) as client:
             try:
                 progress = await self._post(client, API_PROGRESS, {})
                 finished = (progress.get("progress") or {}).get("finished", 0)
+                study_ms = (progress.get("progress") or {}).get("study_time", 0) or 0
                 if finished:
                     today_override = (
                         until,
@@ -94,6 +100,8 @@ class MaimemoConnector:
                             "method": "progress",
                         },
                     )
+                if study_ms > 0:
+                    today_minutes = round(study_ms / 60000)
             except Exception:  # noqa: BLE001 — beta endpoint; pagination still works
                 pass
 
@@ -137,7 +145,7 @@ class MaimemoConnector:
         if today_override is not None:
             per_day[today_override[0].isoformat()] = today_override[1]
 
-        return [
+        points = [
             DailyPoint(
                 local_date=date.fromisoformat(dk),
                 domain="english",
@@ -153,3 +161,19 @@ class MaimemoConnector:
             )
             for dk, bucket in sorted(per_day.items())
         ]
+
+        if today_minutes is not None and today_minutes > 0:
+            points.append(
+                DailyPoint(
+                    local_date=until,
+                    domain="english",
+                    metric="english.minutes",
+                    value=today_minutes,
+                    unit="min",
+                    source="maimemo",
+                    confidence=0.95,
+                    metadata={"method": "progress", "granularity": "day"},
+                )
+            )
+
+        return points

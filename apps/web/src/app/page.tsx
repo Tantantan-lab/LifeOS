@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { GoalProgressHero } from "@/components/home/goal-progress-hero";
+import { NextActionCard } from "@/components/home/next-action-card";
 import { DomainRow } from "@/components/home/domain-row";
 import { TodayColumn } from "@/components/home/today-column";
 import { MeVsMeSummary } from "@/components/home/me-vs-me-summary";
@@ -48,6 +49,9 @@ export default async function HomePage() {
       {/* 0. Data-driven header */}
       <DashboardHeader status={header} />
 
+      {/* 0.5 Decision interface — data → decision → action → new data */}
+      {nextAction && <NextActionCard action={nextAction} />}
+
       {/* 1. How am I doing? */}
       <GoalProgressHero progress={progress} />
 
@@ -77,11 +81,7 @@ export default async function HomePage() {
           />
           <div className="mt-3 text-micro text-fg-muted">{HEATMAP_CAPTION}</div>
         </Panel>
-        <TodayColumn
-          items={today}
-          completion={todayCompletion}
-          action={nextAction}
-        />
+        <TodayColumn items={today} completion={todayCompletion} />
       </div>
 
       {/* 4. Me vs Me · Goals · Insights */}

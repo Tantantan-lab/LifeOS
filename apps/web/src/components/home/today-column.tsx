@@ -1,21 +1,17 @@
-import type { NextBestAction, TodayItem } from "@/data/types";
+import type { TodayItem } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { SectionHeading } from "@/components/primitives/section-heading";
-import { ArrowRight } from "lucide-react";
 import { NO_ENTRIES_TODAY } from "@/lib/copy";
-import { formatPct } from "@/lib/format";
 
 /** Compact timeline of everything logged today, newest first. */
 export function TodayColumn({
   items,
   completion,
-  action,
 }: {
   items: TodayItem[];
   /** Today's overall goal completion 0..1 (null = no data at all). */
   completion: number | null;
-  action: NextBestAction | null;
 }) {
   return (
     <Panel className="flex h-full flex-col">
@@ -49,8 +45,6 @@ export function TodayColumn({
           ))}
         </ol>
       )}
-
-      {action && <NextBestActionCard action={action} />}
     </Panel>
   );
 }
@@ -89,21 +83,3 @@ function DailyGoalRing({ completion }: { completion: number }) {
   );
 }
 
-/** The closing link of the core loop — action + evidence, never "go study". */
-function NextBestActionCard({ action }: { action: NextBestAction }) {
-  return (
-    <div className="mt-4 rounded-[10px] border border-border bg-surface-2/60 p-3">
-      <div className="flex items-center gap-2">
-        <DomainDot domain={action.domain} />
-        <span className="text-micro uppercase tracking-[0.12em] text-fg-muted">
-          Next Best Action
-        </span>
-        <ArrowRight className="ml-auto size-4 text-fg-muted" />
-      </div>
-      <div className="mt-1.5 text-sm font-medium text-fg">{action.title}</div>
-      <div className="mt-1 text-micro text-fg-muted">
-        Reason: {action.reason}
-      </div>
-    </div>
-  );
-}

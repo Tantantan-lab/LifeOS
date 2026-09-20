@@ -15,6 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/layout/nav-item";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 type NavEntry = { href: string; label: string; icon: LucideIcon };
 
@@ -87,8 +88,9 @@ export function AppSidebar() {
             ))}
           </nav>
           <div className="border-t border-border px-3 pt-3 text-micro text-fg-muted">
-            <div>Local user · demo data</div>
-            <div className="mt-0.5">v0.1.0 · M1</div>
+            <ThemeToggle className="mb-2" />
+            <div>No judgment. Just evidence.</div>
+            <div className="mt-0.5">Local user · v0.5.0 · M5</div>
           </div>
         </div>
       </aside>

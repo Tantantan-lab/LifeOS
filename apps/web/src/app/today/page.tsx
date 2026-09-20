@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { TodayColumn } from "@/components/home/today-column";
+import { NextActionCard } from "@/components/home/next-action-card";
 import {
   getNextBestAction,
   getTodayGoalCompletion,
@@ -19,8 +20,9 @@ export default async function TodayPage() {
   return (
     <>
       <PageHeader title="Today" />
-      <div className="max-w-2xl">
-        <TodayColumn items={items} completion={completion} action={action} />
+      <div className="max-w-2xl space-y-5">
+        {action && <NextActionCard action={action} />}
+        <TodayColumn items={items} completion={completion} />
       </div>
     </>
   );

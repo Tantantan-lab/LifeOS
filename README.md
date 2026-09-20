@@ -78,4 +78,5 @@ npm run test:api    # pytest for the api (fixture-driven, no tokens needed)
 - **M2 (done)**: database — one plain Postgres container (sub2api-style): users/events/goals/metrics/data_sources, seeded 365-day history, read path switched to the DB. Privacy = localhost-only binding + server-only credentials.
 - **M3 (done)**: five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick — all official APIs), AI insights pipeline (DeepSeek, FACT/TREND/GAP/ACTION), real "today". Live syncs pending your credentials in `apps/api/.env`.
 - **M4 (done)**: interaction gaps from the Master UI Prompt — Next Best Action (with reason), Heatmap Day Detail, Dashboard Header, Daily Goal ring, Data Sources page.
-- **M5 (next)**: Finance / Nutrition domains, Health page, more connectors, manual input.
+- **M5 (done)**: Decision Interface — NBA main card with Start timer → manual Event → loop re-derivation; Level badge + skill statuses; Insights 4-tab; theme switch (System/Dark/Light, default Dark).
+- **M6 (next)**: Finance / Nutrition domains, Health page, more connectors.

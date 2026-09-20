@@ -209,12 +209,17 @@ Vercel 的工程感 + Apple Health 的个人健康数据感，形成 LifeOS 品�
 
 ## 与当前实现的差异注记（2026-09-20）
 
-- 本仓库已按此规范的 ~80% 落地（M1-M4），工程细节见 design-system.md /
+- 本仓库已按此规范的 ~85% 落地（M1-M5），工程细节见 design-system.md /
   data-model.md / architecture.md。
 - M4 已补齐：Next Best Action（带 Reason）、Heatmap Day Detail 弹窗、
   Dashboard Header（数据驱动问候语）、Today 环形进度、Data Sources 真页面。
-- 尚未实现：Finance 域、Nutrition 域、Health 独立页、Goals 的 Level 概念、
-  Insights 多 tab、heatmap 年份切换、移动端 bottom nav、Light mode。
+- M5 已补齐（Decision Interface 方向）：NBA 提升为首页主卡（Why now +
+  Start 计时 → 完成写 manual Event → 闭环重算）、Goals Level 徽章 +
+  技能状态词（Completed/Proficient/Learning/Not started）、Insights 四 tab
+  （Summary/Trends/Gaps/AI Analysis）、Theme 切换（System/Dark/Light，
+  默认 Dark）。
+- 尚未实现：Finance 域、Nutrition 域、Health 独立页、heatmap 年份切换
+  （当前数据仅一年，跨年后再做）、移动端 bottom nav（现为顶部横滚 pills）。
 - 域命名已演进：规范中的 Study/Fitness/Sleep 在 M3 中合并为
   learning / health 域（见 data-model.md 的指标目录）；Finance / Nutrition
   为新域，schema 通过域 CHECK 迁移即可支持。

@@ -25,6 +25,9 @@ export function BenchmarkBars({ skills }: { skills: SkillBenchmark[] }) {
             <div key={skill.skill} className="flex items-center gap-3">
               <span className="w-24 shrink-0 truncate text-sm text-fg-secondary">
                 {skill.skill}
+                <span className="block truncate text-micro text-fg-muted">
+                  {skill.status}
+                </span>
               </span>
               <div className="relative h-2.5 min-w-0 flex-1 rounded-full bg-surface-2">
                 <div

@@ -39,6 +39,7 @@ import type {
   HeatmapDomain,
   HeatmapStats,
   InsightPreview,
+  InsightTrendRow,
   Level,
   LifeEvent,
   MeVsMeWindow,
@@ -85,6 +86,12 @@ function getEventIndex(): Promise<EventIndex> {
       throw e;
     });
   return indexPromise;
+}
+
+/** Drop the in-memory index — called after a manual write so the next
+ *  render recomputes from the database. */
+export function invalidateEventIndex(): void {
+  indexPromise = null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -382,6 +389,22 @@ function weightedReadiness(): number {
   return SKILLS.reduce((s, x) => s + x.score * x.weight, 0) / total;
 }
 
+/** Readiness bands — the Level badge, not a grade of the person. */
+export function levelOfReadiness(overall: number): number {
+  if (overall < 50) return 1;
+  if (overall < 80) return 2;
+  if (overall < 95) return 3;
+  return 4;
+}
+
+/** Evidence-based status word per skill (never subjective praise). */
+export function statusOfSkill(score: number | null, target: number): string {
+  if (score === null) return "Not started";
+  if (score >= target) return "Completed";
+  if (score / target >= 0.8) return "Proficient";
+  return "Learning";
+}
+
 export async function getGoalProgress(): Promise<GoalProgress> {
   const idx = await getEventIndex();
   const today = todayKey();
@@ -403,6 +426,7 @@ export async function getGoalProgress(): Promise<GoalProgress> {
 
   return {
     overall,
+    level: levelOfReadiness(overall),
     targetLabel: TARGET_LABEL,
     skills: await getBenchmarks(),
     updatedLabel: `Updated ${formatMonthDay(today)}`,
@@ -418,6 +442,7 @@ export async function getBenchmarks(): Promise<SkillBenchmark[]> {
     weight: s.weight,
     gap: s.target - s.score,
     evidence: s.evidence,
+    status: statusOfSkill(s.score, s.target),
   }));
 }
 
@@ -715,7 +740,48 @@ export async function getNextBestAction(): Promise<NextBestAction | null> {
     title: isDuration ? `${row.label} · +${extra} min` : `${row.label} · +${extra} more`,
     reason: `${row.label} is ${gapPct}% below its target (${row.targetLabel}) over the last 30 days.`,
     domain: row.domain,
+    metric: row.metric,
+    minutes: isDuration ? extra : 0,
   };
+}
+
+/** Trends tab — 30/90-day deltas per domain primary metric + honesty flag. */
+export async function getInsightTrends(): Promise<InsightTrendRow[]> {
+  const idx = await getEventIndex();
+  const today = todayKey();
+  const last30 = windowRange(PREV_OFFSETS.last30, today);
+  const prev30 = windowRange(PREV_OFFSETS.prev30, today);
+  const last90 = windowRange(PREV_OFFSETS.last90, today);
+  const prev90 = windowRange(PREV_OFFSETS.prev90, today);
+
+  const rows: InsightTrendRow[] = [];
+  for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
+    const meta = DOMAIN_META[domain];
+    const now30 = sumMetric(idx, domain, meta.primaryMetric, last30.from, last30.to);
+    const then30 = sumMetric(idx, domain, meta.primaryMetric, prev30.from, prev30.to);
+    const now90 = sumMetric(idx, domain, meta.primaryMetric, last90.from, last90.to);
+    const then90 = sumMetric(idx, domain, meta.primaryMetric, prev90.from, prev90.to);
+
+    let hasReal = false;
+    const hasAny = now90 > 0 || then90 > 0;
+    for (let d = last90.from; daysBetween(d, last90.to) >= 0 && !hasReal; d = addDays(d, 1)) {
+      if (eventsOn(idx, domain, d).some((e) => e.event_id.startsWith("conn:"))) {
+        hasReal = true;
+      }
+    }
+
+    const delta90 = deltaPctOf(now90, then90);
+    rows.push({
+      domain,
+      label: meta.label,
+      metric: meta.primaryMetric,
+      delta30: deltaPctOf(now30, then30),
+      delta90,
+      trend90: trendOf(delta90),
+      dataState: hasReal ? "has_real_data" : hasAny ? "mock_only" : "no_data",
+    });
+  }
+  return rows;
 }
 
 /** Greeting + data-driven status line + formatted date for the header. */

@@ -121,6 +121,35 @@ export async function getDataSources(): Promise<
   }));
 }
 
+/**
+ * Manual logging — the closing link of the decision loop (the NBA timer).
+ * The events trigger derives local_date/local_time from the instant.
+ */
+export async function insertManualEvent(input: {
+  metric: string;
+  domain: Domain;
+  minutes: number;
+  metadata?: Record<string, string | number | boolean>;
+}): Promise<void> {
+  await connection();
+  const userId = await resolveOwnerUserId();
+  const eventId = `manual:${input.metric}:${Date.now()}`;
+  await db().query(
+    `insert into events (event_id, user_id, timestamp, domain, metric, value, unit, source, confidence, metadata)
+     values ($1, $2, $3, $4, $5, $6, 'min', 'manual', 1.0, $7)`,
+    [
+      eventId,
+      userId,
+      new Date().toISOString(),
+      input.domain,
+      input.metric,
+      input.minutes,
+      JSON.stringify(input.metadata ?? {}),
+    ]
+  );
+  cache = null; // next render re-reads the stream
+}
+
 /** Latest stored AI insight for a period (null = not generated yet). */
 export async function getLatestInsight(
   period: "week" | "month"

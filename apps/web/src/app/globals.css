@@ -60,38 +60,38 @@
  * so the UI never depends on a light-mode fallback. See docs/design-system.md.
  */
 :root {
-  --background: #0b0e14;
-  --foreground: #f4f6f8;
-  --card: #11151d;
-  --card-foreground: #f4f6f8;
-  --popover: #161b25;
-  --popover-foreground: #f4f6f8;
+  --background: #f6f7f9;
+  --foreground: #10151f;
+  --card: #ffffff;
+  --card-foreground: #10151f;
+  --popover: #ffffff;
+  --popover-foreground: #10151f;
   --primary: #4f46e5; /* brand-strong: button backgrounds need ≥4.5:1 contrast */
-  --primary-foreground: #f4f6f8;
-  --secondary: #161b25;
-  --secondary-foreground: #f4f6f8;
-  --muted: #161b25;
-  --muted-foreground: #a1a8b3; /* readable descriptions — never #697180 */
-  --accent: #161b25;
-  --accent-foreground: #f4f6f8;
-  --destructive: #f07878;
-  --border: #242a36;
-  --input: #242a36;
-  --ring: #6366f1;
-  --chart-1: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f4;
+  --secondary-foreground: #10151f;
+  --muted: #eef0f4;
+  --muted-foreground: #3d4553; /* readable descriptions — never a 3:1 muted */
+  --accent: #eef0f4;
+  --accent-foreground: #10151f;
+  --destructive: #dc2626;
+  --border: #d8dde5;
+  --input: #d8dde5;
+  --ring: #4f46e5;
+  --chart-1: #4f46e5;
   --chart-2: #4f8cff;
   --chart-3: #a970ff;
-  --chart-4: #45d483;
+  --chart-4: #15803d;
   --chart-5: #ff9f43;
   --radius: 14px;
-  --sidebar: #11151d;
-  --sidebar-foreground: #f4f6f8;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #10151f;
   --sidebar-primary: #4f46e5;
-  --sidebar-primary-foreground: #f4f6f8;
-  --sidebar-accent: #161b25;
-  --sidebar-accent-foreground: #f4f6f8;
-  --sidebar-border: #242a36;
-  --sidebar-ring: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef0f4;
+  --sidebar-accent-foreground: #10151f;
+  --sidebar-border: #d8dde5;
+  --sidebar-ring: #4f46e5;
 }
 
 .dark {

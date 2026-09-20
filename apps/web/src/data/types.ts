@@ -79,6 +79,21 @@ export interface NextBestAction {
   /** WHY this is recommended — never just "go study". */
   reason: string;
   domain: Domain;
+  /** Metric the Start timer will log minutes against. */
+  metric: string;
+  /** Suggested session length in minutes. */
+  minutes: number;
+}
+
+export interface InsightTrendRow {
+  domain: Domain;
+  label: string;
+  metric: string;
+  delta30: number;
+  delta90: number;
+  trend90: Trend;
+  /** has_real_data / mock_only / no_data — the LLM-facing honesty flag. */
+  dataState: "has_real_data" | "mock_only" | "no_data";
 }
 
 export interface HeaderStatus {
@@ -158,11 +173,15 @@ export interface SkillBenchmark {
   weight: number;
   gap: number | null;
   evidence: string;
+  /** Completed / Proficient / Learning / Not started. */
+  status: string;
 }
 
 export interface GoalProgress {
   /** Weighted readiness, e.g. 72. Never presented as a "Life Score". */
   overall: number;
+  /** Level band: 1 = <50, 2 = 50-79, 3 = 80-94, 4 = 95+. */
+  level: number;
   targetLabel: string;
   skills: SkillBenchmark[];
   updatedLabel: string;

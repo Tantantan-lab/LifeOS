@@ -84,7 +84,16 @@ async function main() {
     ["no horizontal overflow", `document.documentElement.scrollWidth <= window.innerWidth`],
     ["no Life Score wording", `!document.body.innerText.includes("Life Score")`],
     ["data-driven header present", `document.body.innerText.includes("Good") && document.body.innerText.includes("90-day self")`],
-    ["Next Best Action with reason", `document.body.innerText.toUpperCase().includes("NEXT BEST ACTION") && document.body.innerText.includes("Reason:")`],
+    ["Next Best Action with reason", `document.body.innerText.toUpperCase().includes("NEXT BEST ACTION") && document.body.innerText.includes("Why now?")`],
+    ["Level badge present", `document.body.innerText.includes("Level 2")`],
+    ["Start button present", `document.body.innerText.includes("Start") && document.body.innerText.includes("session")`],
+  ]);
+
+  // ---------- Theme + decision loop ----------
+  await checkPage("/", [
+    ["theme toggle to light works", `(async () => { const btn = document.querySelector('[aria-label="Light theme"]'); btn.click(); await new Promise(r => setTimeout(r, 300)); const light = getComputedStyle(document.body).backgroundColor === "rgb(246, 247, 249)"; const dk = document.querySelector('[aria-label="Dark theme"]'); dk.click(); await new Promise(r => setTimeout(r, 300)); return light && getComputedStyle(document.body).backgroundColor === "rgb(11, 14, 20)"; })()`],
+    ["timer start/cancel", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return false; btns[0].click(); await new Promise(r => setTimeout(r, 1500)); const running = document.body.innerText.includes("Complete & log"); const cancel = document.querySelector('[aria-label="Cancel session"]'); if (cancel) cancel.click(); return running; })()`],
+    ["timer complete writes an event", `(async () => { const before = document.body.innerText; const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return false; btns[0].click(); await new Promise(r => setTimeout(r, 2500)); const done = document.querySelector("button"); const complete = Array.from(document.querySelectorAll("button")).find(b => b.innerText.includes("Complete & log")); if (!complete) return false; complete.click(); await new Promise(r => setTimeout(r, 2500)); return document.body.innerText !== before; })()`],
   ]);
 
   // ---------- Contribution ----------
@@ -103,6 +112,14 @@ async function main() {
   await checkPage("/data-sources", [
     ["connector cards render", `document.body.innerText.includes("GitHub") && document.body.innerText.includes("WeRead") && document.body.innerText.includes("Maimemo") && document.body.innerText.includes("TickTick")`],
     ["sync status lines", `document.body.innerText.includes("Last sync:") && (document.body.innerText.includes("Connected") || document.body.innerText.includes("Disconnected"))`],
+  ]);
+
+  // ---------- Insights tabs ----------
+  await checkPage("/insights?tab=trends", [
+    ["trends tab renders table", `document.body.innerText.toUpperCase().includes("90 DAYS") && document.body.innerText.toUpperCase().includes("DOMAIN")`],
+  ]);
+  await checkPage("/insights?tab=gaps", [
+    ["gaps tab renders ranking", `document.body.innerText.includes("Kubernetes") && document.body.innerText.includes("Cloud")`],
   ]);
 
   // ---------- Me vs Me ----------

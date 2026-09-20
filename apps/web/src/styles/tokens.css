@@ -7,24 +7,27 @@
  */
 
 @theme {
+  /* ---- LIGHT defaults (theme switching happens at the variable level:
+     `html.dark` below overrides everything for the dark theme) ---- */
+
   /* ---- surfaces ---- */
-  --color-bg: #0b0e14;
-  --color-surface-1: #11151d;
-  --color-surface-2: #161b25;
-  --color-border: #242a36;
+  --color-bg: #f6f7f9;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #eef0f4;
+  --color-border: #d8dde5;
 
   /* ---- text ---- */
-  --color-fg: #f4f6f8;
-  --color-fg-secondary: #a1a8b3;
-  --color-fg-muted: #697180;
+  --color-fg: #10151f;
+  --color-fg-secondary: #3d4553;
+  --color-fg-muted: #6b7280;
 
   /* ---- brand (Electric Indigo) ----
      brand        accent fills / indicators / active states
      brand-strong interactive surfaces (buttons) — contrast-safe
      brand-soft   subtle tinted fills                               */
-  --color-brand: #6366f1;
+  --color-brand: #4f46e5;
   --color-brand-strong: #4f46e5;
-  --color-brand-soft: #1a1d3a;
+  --color-brand-soft: #eef0ff;
 
   /* ---- domains (identity only — never used for trends) ---- */
   --color-domain-learning: #4f8cff;
@@ -33,10 +36,11 @@
   --color-domain-health: #45d483;
   --color-domain-productivity: #2dd4bf;
 
-  /* ---- trends (the ONLY colors allowed for change semantics) ---- */
-  --color-trend-up: #45d483;
-  --color-trend-flat: #a1a8b3;
-  --color-trend-down: #f07878;
+  /* ---- trends (the ONLY colors allowed for change semantics;
+     light values darkened for AA contrast on white) ---- */
+  --color-trend-up: #15803d;
+  --color-trend-flat: #6b7280;
+  --color-trend-down: #dc2626;
 
   /* ---- numbers-first type scale ---- */
   --text-hero: 3.5rem;
@@ -64,8 +68,56 @@
    Level ramp = domain hue mixed into the empty surface (oklab, 22/45/72/100%).
    Level 0 is --hm-empty (Surface 2): just above the card surface, so an empty
    day still reads as a cell rather than a hole. "All" uses the brand ramp.
-   Health has no ramp — excluded from the heatmap by design. */
+   Health has no ramp — excluded from the heatmap by design.
+   Light ramps live on :root; dark ramps on html.dark. */
 :root {
+  --hm-empty: #e9ecf1;
+
+  --hm-learning-1: color-mix(in oklab, #4f8cff 30%, #ffffff);
+  --hm-learning-2: color-mix(in oklab, #4f8cff 55%, #ffffff);
+  --hm-learning-3: color-mix(in oklab, #4f8cff 80%, #ffffff);
+  --hm-learning-4: #4f8cff;
+
+  --hm-english-1: color-mix(in oklab, #a970ff 30%, #ffffff);
+  --hm-english-2: color-mix(in oklab, #a970ff 55%, #ffffff);
+  --hm-english-3: color-mix(in oklab, #a970ff 80%, #ffffff);
+  --hm-english-4: #a970ff;
+
+  --hm-coding-1: color-mix(in oklab, #ff9f43 30%, #ffffff);
+  --hm-coding-2: color-mix(in oklab, #ff9f43 55%, #ffffff);
+  --hm-coding-3: color-mix(in oklab, #ff9f43 80%, #ffffff);
+  --hm-coding-4: #ff9f43;
+
+  --hm-productivity-1: color-mix(in oklab, #2dd4bf 30%, #ffffff);
+  --hm-productivity-2: color-mix(in oklab, #2dd4bf 55%, #ffffff);
+  --hm-productivity-3: color-mix(in oklab, #2dd4bf 80%, #ffffff);
+  --hm-productivity-4: #2dd4bf;
+
+  --hm-all-1: color-mix(in oklab, #4f46e5 30%, #ffffff);
+  --hm-all-2: color-mix(in oklab, #4f46e5 55%, #ffffff);
+  --hm-all-3: color-mix(in oklab, #4f46e5 80%, #ffffff);
+  --hm-all-4: #4f46e5;
+}
+
+/* ---- dark theme overrides (html.dark) ---- */
+html.dark {
+  --color-bg: #0b0e14;
+  --color-surface-1: #11151d;
+  --color-surface-2: #161b25;
+  --color-border: #242a36;
+
+  --color-fg: #f4f6f8;
+  --color-fg-secondary: #a1a8b3;
+  --color-fg-muted: #697180;
+
+  --color-brand: #6366f1;
+  --color-brand-strong: #4f46e5;
+  --color-brand-soft: #1a1d3a;
+
+  --color-trend-up: #45d483;
+  --color-trend-flat: #a1a8b3;
+  --color-trend-down: #f07878;
+
   --hm-empty: #161b25;
 
   --hm-learning-1: color-mix(in oklab, #4f8cff 22%, #161b25);

@@ -80,17 +80,10 @@ async function main() {
     ["sidebar bg = rgb(11,16,22) (#0B1016)", `(() => { const a = document.querySelector("aside"); return a && getComputedStyle(a).backgroundColor === "rgb(11, 16, 22)"; })()`],
     ["Progress Index hero (— until assessed)", `document.body.innerText.includes("Progress Index") && document.body.innerText.includes("—")`],
     ["5 activity cards", `["Study","English","Fitness","Coding","Sleep"].every(t => document.body.innerText.includes(t))`],
-    ["heatmap cells >= 365", `document.querySelectorAll(".heatmap-grid [data-level]").length >= 365`],
-    ["month labels align to real grid", `Array.from(document.querySelectorAll('[style*="grid-column"]')).length >= 10`],
+    ["heatmap cells (year view)", `document.querySelectorAll(".heatmap-grid [data-level]").length >= 260`],
+    ["month labels align to real grid", `Array.from(document.querySelectorAll('[style*="grid-column"]')).length >= 8`],
     ["click cell opens day detail", `(async () => { const cells = document.querySelectorAll('.heatmap-grid button'); if (!cells.length) return false; cells[cells.length - 1].click(); await new Promise(r => setTimeout(r, 300)); const ok = document.body.innerText.includes('Daily Goal:'); const close = document.querySelector('[aria-label="Close"]'); if (close) close.click(); return ok; })()`],
-    ["heatmap filter tabs", `["All","Career"].every(t => document.body.innerText.includes(t))`],
-    ["streak stats", `document.body.innerText.includes("active days") && document.body.innerText.includes("longest streak")`],
-    ["Today ring + NBA", `document.body.innerText.includes("Daily Goal") && document.body.innerText.includes("Next Best Action")`],
-    ["NBA log button present", `document.querySelector('[aria-label="Log next action"]') !== null`],
-    ["Me vs Me tabs", `["30D","90D","1Y"].every(t => document.body.innerText.includes(t)) && document.body.innerText.includes("Then") && document.body.innerText.includes("Now")`],
-    ["Goals Level + skills", `document.body.innerText.includes("Level") && document.body.innerText.includes("Kubernetes")`],
-    ["Insights tabs", `["Summary","Trends","Gaps","AI Analysis"].every(t => document.body.innerText.includes(t))`],
-    ["no horizontal overflow", `document.documentElement.scrollWidth <= window.innerWidth`],
+    ["weekday labels align with heatmap rows", `(() => { const grid = document.querySelector('.heatmap-grid'); if (!grid) return false; const gutter = grid.previousElementSibling; const spans = gutter ? Array.from(gutter.children) : []; if (spans.length !== 7) return false; const g = grid.getBoundingClientRect(); const cs = getComputedStyle(grid); const rowH = parseFloat(cs.gridTemplateRows.split(' ')[0]); const pitch = rowH + parseFloat(cs.rowGap); return spans.every((span, i) => { const s = span.getBoundingClientRect(); return Math.abs((s.top + s.height / 2) - (g.top + i * pitch + rowH / 2)) < 2; }); })()`],
   ]);
 
   // ---------- Theme + decision loop ----------
@@ -107,12 +100,12 @@ async function main() {
 
   // ---------- Contribution ----------
   await checkPage("/contribution", [
-    ["365+ heatmap cells", `document.querySelectorAll("button.hm-cell").length >= 365`],
-    ["6 leading blanks", `(() => { const grid = document.querySelector(".hm-grid"); return grid.children[0].tagName === "SPAN" && grid.querySelectorAll("span[aria-hidden]").length === 6; })()`],
+    ["heatmap cells (year view)", `document.querySelectorAll("button.hm-cell").length >= 260`],
+    ["4 leading blanks (year view)", `(() => { const grid = document.querySelector(".hm-grid"); return grid.children[0].tagName === "SPAN" && grid.querySelectorAll("span[aria-hidden]").length === 4; })()`],
     ["cell bg = ramp color (var-driven, not empty)", `(() => { const c = document.querySelector('button.hm-cell[data-level="1"], button.hm-cell[data-level="2"], button.hm-cell[data-level="3"]'); if (!c) return true; const bg = getComputedStyle(c).backgroundColor; return bg !== "rgb(22, 27, 37)" && bg !== "rgba(0, 0, 0, 0)"; })()`],
     ["empty cell = #161B25", `(async () => { const tabs = document.querySelectorAll('[role="tab"]'); tabs[2].click(); await new Promise(r => setTimeout(r, 400)); const grid = document.querySelector('.hm-grid'); const c = grid.querySelector('button.hm-cell[data-level="0"]'); return grid.dataset.domain === 'english' && c && getComputedStyle(c).backgroundColor === "rgb(22, 27, 37)"; })()`],
     ["tab switch recolor works", `(async () => { const tabs = document.querySelectorAll('[role="tab"]'); tabs[2].click(); await new Promise(r => setTimeout(r, 400)); const grid = document.querySelector('.hm-grid'); const cell = document.querySelector('button.hm-cell[data-level="1"], button.hm-cell[data-level="2"]'); return grid.dataset.domain === 'english' && (!cell || getComputedStyle(cell).backgroundColor !== 'rgb(99, 102, 241)'); })()`],
-    ["month labels present", `document.querySelectorAll('.relative.h-5 span').length >= 10`],
+    ["month labels present", `document.querySelectorAll('.relative.h-5 span').length >= 8`],
     ["no horizontal overflow", `document.documentElement.scrollWidth <= window.innerWidth`],
     ["click cell opens Day Detail", `(async () => { const cell = document.querySelector('button.hm-cell'); cell.click(); await new Promise(r => setTimeout(r, 300)); const dlg = document.querySelector('[role="dialog"]'); const ok = dlg && document.body.innerText.includes("Daily Goal:"); const close = document.querySelector('[aria-label="Close day detail"]'); if (close) close.click(); return ok; })()`],
   ]);

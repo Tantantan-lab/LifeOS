@@ -88,7 +88,7 @@ function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[
     <div className="mt-5 overflow-hidden">
       {/* Month labels aligned to the REAL 53-column geometry (not 12 equal buckets) */}
       <div
-        className="ml-[46px] grid text-[11px] text-[#b1b8c5]"
+        className="ml-10 grid text-[11px] text-[#b1b8c5]"
         style={{ gridTemplateColumns: "repeat(53, minmax(7px, 1fr))", gap: "3px" }}
       >
         {geometry.monthLabels.map((label) => (
@@ -96,7 +96,7 @@ function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[
         ))}
       </div>
       <div className="mt-3 flex gap-3">
-        <div className="grid h-[154px] grid-rows-7 text-[11px] text-[#adb5c3]">{dayRows.map((day) => <span key={day} className="leading-[14px]">{locale === "zh" ? ({ Mon: "一", Tue: "二", Wed: "三", Thu: "四", Fri: "五", Sat: "六", Sun: "日" }[day] ?? day) : day}</span>)}</div>
+        <div className="grid h-[116px] w-7 shrink-0 grid-rows-7 gap-[3px] text-[11px] leading-none text-[#adb5c3]">{dayRows.map((day) => <span key={day} className="flex items-center">{locale === "zh" ? ({ Mon: "一", Tue: "二", Wed: "三", Thu: "四", Fri: "五", Sat: "六", Sun: "日" }[day] ?? day) : day}</span>)}</div>
         <div className="heatmap-grid" aria-label="Yearly contribution heatmap">
           {cells.map((level, index) => (
             <button

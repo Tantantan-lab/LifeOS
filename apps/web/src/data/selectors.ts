@@ -16,7 +16,6 @@ import {
   DOMAIN_META,
   GAP_PACE_POINTS_PER_WEEK,
   GOAL_ROWS,
-  GRID_START,
   HEATMAP_DOMAINS,
   NOT_STARTED_SKILL,
   SKILLS,
@@ -51,7 +50,7 @@ import type {
   WindowKey,
 } from "@/data/types";
 import { getDataSources as getDataSourcesDb } from "@/data/db";
-import { addDays, daysBetween, formatDateLong, formatRange } from "@/lib/dates";
+import { addDays, daysBetween, formatDateLong, formatRange, sundayOnOrBefore } from "@/lib/dates";
 import { formatCount, formatDuration, formatHours1, formatMonthDay, formatTime } from "@/lib/format";
 import { SOURCE_LABELS } from "@/lib/copy";
 import { LIFEOS_TIMEZONE, todayKey } from "@/lib/today";
@@ -316,8 +315,13 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
   const today = todayKey();
   const active = domainsWithData(idx, today);
 
+  // The heatmap shows the CURRENT YEAR (Jan 1 → today) — matching the
+  // year badge in the dashboard header. Older data still feeds stats,
+  // Me vs Me and insights; a year switcher is future work.
+  const yearStart = `${today.slice(0, 4)}-01-01`;
+
   const days: HeatmapDay[] = [];
-  for (let d = DATASET_START; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
+  for (let d = yearStart; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
     const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
     for (const domain of HEATMAP_DOMAINS) {
       const completion = completionForDomain(idx, domain, d);
@@ -340,7 +344,7 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
       productivity: cells.productivity,
     });
   }
-  return { gridStart: GRID_START, days };
+  return { gridStart: sundayOnOrBefore(yearStart), days };
 }
 
 /* ---- Me vs Me ---- */

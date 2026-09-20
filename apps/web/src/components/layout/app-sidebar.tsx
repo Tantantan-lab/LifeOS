@@ -45,7 +45,7 @@ export function AppSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-[196px] shrink-0 flex-col border-r border-border bg-[#0b1016] md:flex">
+      <aside className="sticky top-0 hidden h-screen w-[196px] shrink-0 flex-col border-r border-border bg-[var(--dash-sidebar)] md:flex">
         <div className="flex h-full flex-col px-2 py-5">
           <BrandBlock locale={locale} />
           <nav className="flex-1 space-y-5 overflow-y-auto">
@@ -67,7 +67,7 @@ export function AppSidebar() {
           </nav>
           <div className="px-4 pb-1 text-[11px] leading-5 text-fg-muted">
             <div className="border-l-2 border-[#6572ff] pl-3">{locale === "zh" ? <>不评判。<br />只看证据。</> : <>No judgment.<br />Just evidence.</>}</div>
-            <div className="mt-7 flex items-center gap-3"><span className="flex size-7 items-center justify-center rounded-full bg-[#202735]"><UserRound className="size-4" /></span><span>{locale === "zh" ? <>更好的自己，<br />更多的选择。</> : <>A better me,<br />more choices.</>}</span></div>
+            <div className="mt-7 flex items-center gap-3"><span className="flex size-7 items-center justify-center rounded-full bg-[var(--dash-surface-hi)]"><UserRound className="size-4" /></span><span>{locale === "zh" ? <>更好的自己，<br />更多的选择。</> : <>A better me,<br />more choices.</>}</span></div>
           </div>
         </div>
       </aside>

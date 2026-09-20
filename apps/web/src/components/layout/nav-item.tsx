@@ -20,12 +20,12 @@ export function NavItem({
       className={cn(
         "relative flex items-center gap-3 rounded-[8px] px-4 py-2.5 text-[13px] transition-colors",
         active
-          ? "bg-[#1b222e] text-fg"
+          ? "bg-[var(--dash-surface-hi)] text-fg"
           : "text-fg-secondary hover:bg-surface-2/60 hover:text-fg"
       )}
     >
       <Icon
-        className={cn("size-4 shrink-0", active ? "text-[#dce3ed]" : "text-[#8f99aa]")}
+        className={cn("size-4 shrink-0", active ? "text-[var(--dash-fg)]" : "text-[var(--dash-fg-3)]")}
       />
       <span className="truncate">{label}</span>
     </Link>

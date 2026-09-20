@@ -74,7 +74,7 @@ function ActivityCard({ card }: { card: (typeof activityCards)[number] }) {
   );
 }
 
-type HeatFilter = "all" | "learning" | "english" | "coding" | "productivity";
+type HeatFilter = "all" | "learning" | "english" | "coding" | "productivity" | "fitness";
 
 function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[]; stats: HeatmapStats; filter: HeatFilter; gridStart: string; locale: "en" | "zh" }) {
   const [selected, setSelected] = useState<HeatmapDay | null>(null);
@@ -327,7 +327,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
         {cards.map((card) => <ActivityCard key={card.label} card={card} />)}
       </div>
       <div className="middle-grid">
-        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]"><ChevronLeft className="size-4" /><span className="rounded-[8px] border border-[var(--dash-border)] px-4 py-1.5">2026</span><ChevronRight className="size-4" /></div></div><Heatmap days={data.heatmap.days} stats={data.heatmapStats} filter={heatFilter} gridStart={data.heatmap.gridStart} locale={locale} /></Panel>
+        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity", "fitness"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率", fitness: "健身" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career", fitness: "Fitness" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]"><ChevronLeft className="size-4" /><span className="rounded-[8px] border border-[var(--dash-border)] px-4 py-1.5">2026</span><ChevronRight className="size-4" /></div></div><Heatmap days={data.heatmap.days} stats={data.heatmapStats} filter={heatFilter} gridStart={data.heatmap.gridStart} locale={locale} /></Panel>
         <TodayCard items={data.today} completion={data.todayCompletion} action={data.nextAction} locale={locale} />
       </div>
       <div className="bottom-grid"><MeVsMe windows={data.meVsMe} locale={locale} /><GoalsCard progress={data.progress} locale={locale} /><InsightsCard insight={data.insight} trends={data.trends} gaps={data.gaps} locale={locale} /></div>

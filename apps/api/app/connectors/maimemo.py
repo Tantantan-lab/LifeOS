@@ -21,7 +21,7 @@ number prefers the authoritative get_study_progress value.
 """
 
 import asyncio
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 
@@ -33,11 +33,21 @@ BASE = "https://open.maimemo.com/open"
 API_PROGRESS = "/api/v1/memo/study/get_study_progress"
 API_RECORDS = "/api/v1/memo/study/query_study_records"
 
+SHANGHAI = timezone(timedelta(hours=8))
+
+# Paging horizon: words studied today can have next_study_date months in
+# the future — the window must reach far ahead or they are never returned.
+PAGE_HORIZON_YEARS = 3
+
 
 def _date_of_local(iso: str) -> date:
-    # API returns Beijing-time strings like "2026-09-18T08:12:00.000+08:00";
-    # the calendar date portion IS the local date — take it verbatim.
-    return date.fromisoformat(iso[:10])
+    """API timestamps are UTC ('...Z') or Beijing ('...+08:00'); the
+    attributed day is ALWAYS the Shanghai calendar date."""
+    s = iso.strip().replace("Z", "+00:00")
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=SHANGHAI)
+    return dt.astimezone(SHANGHAI).date()
 
 
 class MaimemoConnector:
@@ -88,10 +98,12 @@ class MaimemoConnector:
                 pass
 
             # History: sliding next_study_date window (end-only), bucketed by
-            # last_study_date. Rate limits: 20/10s, 40/60s, 2000/5h.
-            window_end = datetime(until.year, until.month, until.day, 23, 59, 59)
-            cursor = window_end.strftime("%Y-%m-%dT%H:%M:%S.000+08:00")
-            for _ in range(20):  # ≤20 pages (1000 × 20 words is beyond any vocab)
+            # last_study_date. The cursor starts YEARS ahead so words whose
+            # next review is far in the future are still paged. Rate limits:
+            # 20/10s, 40/60s, 2000/5h.
+            horizon = datetime(until.year + PAGE_HORIZON_YEARS, 12, 31, 23, 59, 59)
+            cursor = horizon.strftime("%Y-%m-%dT%H:%M:%S.000+08:00")
+            for _ in range(50):  # ≤50 pages — covers ~50k words, beyond any vocab
                 data = await self._post(
                     client,
                     API_RECORDS,

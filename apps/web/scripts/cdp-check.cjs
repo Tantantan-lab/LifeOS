@@ -81,6 +81,8 @@ async function main() {
     ["Progress Index hero (— until assessed)", `document.body.innerText.includes("Progress Index") && document.body.innerText.includes("—")`],
     ["5 activity cards", `["Study","English","Fitness","Coding","Sleep"].every(t => document.body.innerText.includes(t))`],
     ["heatmap cells >= 365", `document.querySelectorAll(".heatmap-grid [data-level]").length >= 365`],
+    ["month labels align to real grid", `Array.from(document.querySelectorAll('[style*="grid-column"]')).length >= 10`],
+    ["click cell opens day detail", `(async () => { const cells = document.querySelectorAll('.heatmap-grid button'); if (!cells.length) return false; cells[cells.length - 1].click(); await new Promise(r => setTimeout(r, 300)); const ok = document.body.innerText.includes('Daily Goal:'); const close = document.querySelector('[aria-label="Close"]'); if (close) close.click(); return ok; })()`],
     ["heatmap filter tabs", `["All","Career"].every(t => document.body.innerText.includes(t))`],
     ["streak stats", `document.body.innerText.includes("active days") && document.body.innerText.includes("longest streak")`],
     ["Today ring + NBA", `document.body.innerText.includes("Daily Goal") && document.body.innerText.includes("Next Best Action")`],
@@ -98,9 +100,9 @@ async function main() {
 
   // ---------- Today page (session timer lives here) ----------
   await checkPage("/today", [
-    ["NBA timer present", `document.body.innerText.includes("Start") && document.body.innerText.includes("session")`],
-    ["timer start/cancel", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return false; btns[0].click(); await new Promise(r => setTimeout(r, 1500)); const running = document.body.innerText.includes("Complete & log"); const cancel = document.querySelector('[aria-label="Cancel session"]'); if (cancel) cancel.click(); return running; })()`],
-    ["timer complete writes an event", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return false; btns[0].click(); await new Promise(r => setTimeout(r, 2500)); const complete = Array.from(document.querySelectorAll("button")).find(b => b.innerText.includes("Complete & log")); if (!complete) return false; const before = document.body.innerText; complete.click(); await new Promise(r => setTimeout(r, 2500)); return document.body.innerText !== before; })()`],
+    ["NBA card present", `document.body.innerText.toUpperCase().includes("NEXT BEST ACTION")`],
+    ["timer start/cancel", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return true; btns[0].click(); await new Promise(r => setTimeout(r, 1500)); const running = document.body.innerText.includes("Complete & log"); const cancel = document.querySelector('[aria-label="Cancel session"]'); if (cancel) cancel.click(); return running; })()`],
+    ["timer complete writes an event", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return true; btns[0].click(); await new Promise(r => setTimeout(r, 2500)); const complete = Array.from(document.querySelectorAll("button")).find(b => b.innerText.includes("Complete & log")); if (!complete) return false; const before = document.body.innerText; complete.click(); await new Promise(r => setTimeout(r, 2500)); return document.body.innerText !== before; })()`],
   ]);
 
   // ---------- Contribution ----------

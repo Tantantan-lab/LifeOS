@@ -12,6 +12,8 @@ import type {
   TodayItem, WindowKey,
 } from "@/data/types";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { buildGrid } from "@/components/heatmap/heatmap-geometry";
+import { formatDateLong } from "@/lib/dates";
 import { logSession } from "@/app/actions/log-session";
 
 export interface DashboardData {
@@ -72,15 +74,69 @@ function ActivityCard({ card }: { card: (typeof activityCards)[number] }) {
 
 type HeatFilter = "all" | "learning" | "english" | "coding" | "productivity";
 
-function Heatmap({ days, stats, filter, locale }: { days: HeatmapDay[]; stats: HeatmapStats; filter: HeatFilter; locale: "en" | "zh" }) {
+function Heatmap({ days, stats, filter, gridStart, locale }: { days: HeatmapDay[]; stats: HeatmapStats; filter: HeatFilter; gridStart: string; locale: "en" | "zh" }) {
+  const [selected, setSelected] = useState<HeatmapDay | null>(null);
+  const geometry = useMemo(
+    () => buildGrid(gridStart, days.map((day) => day.date)),
+    [gridStart, days]
+  );
   const cells = days.slice(-371).map((day) => filter === "all" ? day.levelAll : day[filter].level);
+  const selectedDay = selected;
   return (
     <div className="mt-5 overflow-hidden">
-      <div className="ml-[46px] grid grid-cols-12 text-[11px] text-[#b1b8c5]">{monthLabels.map((month) => <span key={month}>{month}</span>)}</div>
+      {/* Month labels aligned to the REAL 53-column geometry (not 12 equal buckets) */}
+      <div
+        className="ml-[46px] grid text-[11px] text-[#b1b8c5]"
+        style={{ gridTemplateColumns: "repeat(53, minmax(7px, 1fr))", gap: "3px" }}
+      >
+        {geometry.monthLabels.map((label) => (
+          <span key={`${label.label}-${label.col}`} style={{ gridColumn: label.col + 1 }}>{label.label}</span>
+        ))}
+      </div>
       <div className="mt-3 flex gap-3">
         <div className="grid h-[154px] grid-rows-7 text-[11px] text-[#adb5c3]">{dayRows.map((day) => <span key={day} className="leading-[14px]">{day}</span>)}</div>
-        <div className="heatmap-grid" aria-label="Yearly contribution heatmap">{cells.map((level, index) => <span key={index} data-level={level} title={`Contribution day ${index + 1}`} />)}</div>
+        <div className="heatmap-grid" aria-label="Yearly contribution heatmap">
+          {cells.map((level, index) => (
+            <button
+              key={index}
+              type="button"
+              data-level={level}
+              data-selected={selected?.date === days[index].date}
+              aria-label={days[index].date}
+              onClick={() => setSelected(selected?.date === days[index].date ? null : days[index])}
+            />
+          ))}
+        </div>
       </div>
+      {selectedDay && (
+        <div className="mt-3 rounded-[10px] bg-[#151a23] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-semibold text-white">{formatDateLong(selectedDay.date)}</span>
+            <span className="text-[11px] text-[#8d96a6]">{locale === "zh" ? `当日目标：${Math.round(selectedDay.completionAll * 100)}%` : `Daily Goal: ${Math.round(selectedDay.completionAll * 100)}%`}</span>
+            <button onClick={() => setSelected(null)} className="text-[#7e8796] hover:text-white" aria-label={locale === "zh" ? "关闭" : "Close"}>×</button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {(["learning", "english", "coding", "productivity"] as const).map((domain) => {
+              const cell = selectedDay[domain];
+              const unit = { learning: "min", english: "words", coding: "commits", productivity: "tasks" }[domain];
+              const label = locale === "zh"
+                ? ({ learning: "学习", english: "英语", coding: "编程", productivity: "效率" }[domain])
+                : ({ learning: "Study", english: "English", coding: "Coding", productivity: "Career" }[domain]);
+              const valueText = cell.value === 0
+                ? (locale === "zh" ? "无记录" : "No entry")
+                : `${cell.displayValue} ${unit}`;
+              return (
+                <div key={domain} className="flex items-center gap-2 rounded-[8px] bg-[#111720] px-3 py-2">
+                  <span className={`size-2 rounded-full ${({ learning: "bg-[#4f8fff]", english: "bg-[#9d5bf4]", coding: "bg-[#e8894d]", productivity: "bg-[#50d887]" }[domain])}`} />
+                  <span className="flex-1 truncate text-[12px] text-[#c5cbd6]">{label}</span>
+                  <span className="text-[12px] text-white">{valueText}</span>
+                  <span className="w-10 text-right text-[11px] text-[#8d96a6]">{Math.round(cell.completion * 100)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="mt-5 flex items-end justify-between">
         <div className="flex gap-12">{[[String(stats.activeDays90d), "active days"], [String(stats.currentStreak), "day streak"], [String(stats.longestStreak), "longest streak"]].map(([value, label]) => <div key={label}><div className="text-[17px] font-semibold text-white">{value}</div><div className="text-[11px] text-[#8d96a6]">{locale === "zh" ? (zhStreak[label] ?? label) : label}</div></div>)}</div>
         <div className="flex items-center gap-1 text-[10px] text-[#929aaa]"><span className="mr-1">{locale === "zh" ? "少" : "Less"}</span>{[0, 1, 2, 3, 4].map((level) => <span key={level} className="size-3 rounded-[3px]" data-heat-level={level} />)}<span className="ml-1">{locale === "zh" ? "多" : "More"}</span></div>
@@ -88,6 +144,7 @@ function Heatmap({ days, stats, filter, locale }: { days: HeatmapDay[]; stats: H
     </div>
   );
 }
+
 
 const domainAccent: Record<string, string> = { learning: "blue", english: "purple", health: "green", coding: "orange", productivity: "muted" };
 
@@ -130,7 +187,7 @@ function TodayCard({ items, completion, action, locale }: { items: TodayItem[]; 
       {action && <div className="mt-4 grid grid-cols-[44px_1fr_34px] items-start gap-3 rounded-[10px] bg-[#151b25] p-3.5">
         <span className="flex size-10 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#376eff] to-[#6675ff] text-white shadow-[0_8px_20px_#3162ff33]"><PenLine className="size-4" /></span>
         <div><div className="text-[11px] text-[#9ea7b5]">{locale === "zh" ? "下一步行动" : "Next Best Action"}</div><div className="mt-1 font-semibold text-white">{locale === "zh" ? `${zhLabel(action.label)} · ${action.isDuration ? `+${action.extra} 分钟` : `再 +${action.extra}`}` : action.title}</div><div className="text-[12px] text-[#b2bac7]">{action.minutes} min</div><div className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#8e98a8]">{locale === "zh" ? `原因：${zhLabel(action.label)}近 30 天低于目标（${action.targetLabel}）${action.gapPct}%。` : "Reason: " + action.reason}</div>{logged && <div className="mt-1 text-[11px] text-[#52db89]">{locale === "zh" ? "已记录" : "Logged"}</div>}</div>
-        <button onClick={completeAction} disabled={isPending || logged} className="mt-1 flex size-8 items-center justify-center rounded-full bg-[#252d3c] text-white disabled:opacity-50" aria-label={locale === "zh" ? "记录下一步行动" : "Log next action"}>{logged ? <Check className="size-4" /> : <ArrowRight className="size-4" />}</button>
+        <button onClick={completeAction} disabled={isPending || logged || !action.isDuration} className="mt-1 flex size-8 items-center justify-center rounded-full bg-[#252d3c] text-white disabled:opacity-50" aria-label={locale === "zh" ? "记录下一步行动" : "Log next action"}>{logged ? <Check className="size-4" /> : <ArrowRight className="size-4" />}</button>
       </div>}
     </Panel>
   );
@@ -237,7 +294,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
         {cards.map((card) => <ActivityCard key={card.label} card={card} />)}
       </div>
       <div className="middle-grid">
-        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-white">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]"><ChevronLeft className="size-4" /><span className="rounded-[8px] border border-[#29313d] px-4 py-1.5">2026</span><ChevronRight className="size-4" /></div></div><Heatmap days={data.heatmap.days} stats={data.heatmapStats} filter={heatFilter} locale={locale} /></Panel>
+        <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-white">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]"><ChevronLeft className="size-4" /><span className="rounded-[8px] border border-[#29313d] px-4 py-1.5">2026</span><ChevronRight className="size-4" /></div></div><Heatmap days={data.heatmap.days} stats={data.heatmapStats} filter={heatFilter} gridStart={data.heatmap.gridStart} locale={locale} /></Panel>
         <TodayCard items={data.today} completion={data.todayCompletion} action={data.nextAction} locale={locale} />
       </div>
       <div className="bottom-grid"><MeVsMe windows={data.meVsMe} locale={locale} /><GoalsCard progress={data.progress} locale={locale} /><InsightsCard insight={data.insight} trends={data.trends} gaps={data.gaps} locale={locale} /></div>

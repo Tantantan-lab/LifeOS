@@ -142,30 +142,39 @@ def test_maimemo_bucketing(monkeypatch):
         mm,
         monkeypatch,
         [
-            # 1) get_study_progress (today, authoritative)
+            # 1) get_study_progress (today, authoritative) — data envelope
             FakeResponse(
                 200,
-                {"progress": {"finished": 51, "total": 80, "study_time": 600000}},
+                {"errors": [], "success": True, "data": {"progress": {"finished": 51, "total": 80, "study_time": 600000}}},
             ),
-            # 2) query_study_records page 1
+            # 2) query_study_records page 1 — data envelope
             FakeResponse(
                 200,
                 {
-                    "records": [
-                        {"last_study_date": "2026-09-19T09:00:00.000+08:00"},
-                        {"last_study_date": "2026-09-19T10:00:00.000+08:00"},
-                        {"last_study_date": "2026-09-18T08:00:00.000+08:00"},
-                        {"last_study_date": "2026-08-01T08:00:00.000+08:00"},
-                    ],
-                    "count": 4,
+                    "errors": [], "success": True,
+                    "data": {
+                        "records": [
+                            {"last_study_date": "2026-09-19T09:00:00.000+08:00", "next_study_date": "2026-09-20T09:00:00.000+08:00"},
+                            {"last_study_date": "2026-09-19T10:00:00.000+08:00", "next_study_date": "2026-09-20T09:00:00.000+08:00"},
+                            {"last_study_date": "2026-09-18T08:00:00.000+08:00", "next_study_date": "2026-09-19T08:00:00.000+08:00"},
+                            {"last_study_date": "2026-08-01T08:00:00.000+08:00", "next_study_date": "2026-08-02T08:00:00.000+08:00"},
+                        ],
+                        "count": 4,
+                    },
                 },
             ),
             # 3) query_study_records page 2 — empty (stops pagination)
-            FakeResponse(200, {"records": [], "count": 0}),
+            FakeResponse(200, {"errors": [], "success": True, "data": {"records": [], "count": 0}}),
         ],
     )
 
     points = _run(MaimemoConnector().fetch(date(2026, 9, 1), date(2026, 9, 19)))
+
+    # spec path + end-only sliding window (start:null is a 400)
+    method, url, kw = client.calls[1]
+    assert url == "https://open.maimemo.com/open/api/v1/memo/study/query_study_records"
+    assert "start" not in kw["json"]["next_study_date"]
+
     by_day = {p.local_date.isoformat(): p for p in points}
     # 09-19: progress (51) overrides the bucket (2)
     assert by_day["2026-09-19"].value == 51

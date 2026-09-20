@@ -1,15 +1,23 @@
 """Maimemo (墨墨背单词) connector — official Open API (beta study endpoints).
 
-Base: https://open.maimemo.com/open/api/v1 · Bearer token from the app
-(墨墨 → 开放API; web-issued tokens expire in 7 days). Rate limits:
-20/10s, 40/60s, 2000/5h — paginate slowly.
+Contract verified LIVE against the official spec (open.maimemo.com/
+api_bundle.yaml) and the gateway on 2026-09-20:
+  - base   https://open.maimemo.com/open
+  - paths  /api/v1/memo/study/get_study_progress
+           /api/v1/memo/study/query_study_records
+  - auth   Authorization: Bearer <app-issued API token>
+  - envelope {"errors": [], "data": {...}, "success": true} — ALWAYS unwrap
+    `data`; non-empty `errors` or success=false mean failure.
+  - query_study_records body: {"next_study_date": {"end": ISO}}, limit ≤1000.
+    DO NOT send start:null — the gateway rejects it with 400.
+
+Token: App 我的 → 更多设置 → 实验功能 → 开放 API（7-day expiry; 401 → re-issue).
+Beta caveats (official): requires 自动同步 ON in the app, and the app must
+be opened the same day to initialize counters.
 
 IMPORTANT approximation (no per-day history endpoint exists): each word
 counts on the day of its MOST RECENT review (`last_study_date`). Today's
-number prefers the authoritative `get_study_progress` value. Requires
-auto-sync ON in the app.
-
-401 → re-issue the token in the app.
+number prefers the authoritative get_study_progress value.
 """
 
 import asyncio
@@ -20,7 +28,10 @@ import httpx
 from ..config import settings
 from ..models import DailyPoint
 
-BASE = "https://open.maimemo.com/open/api/v1"
+BASE = "https://open.maimemo.com/open"
+
+API_PROGRESS = "/api/v1/memo/study/get_study_progress"
+API_RECORDS = "/api/v1/memo/study/query_study_records"
 
 
 def _date_of_local(iso: str) -> date:
@@ -43,7 +54,11 @@ class MaimemoConnector:
         if r.status_code == 401:
             raise ValueError("Maimemo token rejected (401) — re-issue it in the app")
         r.raise_for_status()
-        return r.json()
+        envelope = r.json()
+        errors = envelope.get("errors") or []
+        if errors or envelope.get("success") is False:
+            raise ValueError(f"maimemo API error: {errors[:3]}")
+        return envelope.get("data") or {}
 
     async def fetch(self, since: date, until: date) -> list[DailyPoint]:
         if not settings.maimemo_token:
@@ -52,16 +67,15 @@ class MaimemoConnector:
         per_day: dict[str, dict] = {}
         # get_study_progress is authoritative for TODAY and OVERRIDES the
         # history bucket (which also counts today's most-recent reviews).
+        # `until` is the connector's effective "today", keeping scheduled
+        # replays deterministic across timezones.
         today_override: tuple[date, dict] | None = None
 
         async with httpx.AsyncClient(timeout=60) as client:
             try:
-                progress = await self._post(client, "/study/get_study_progress", {})
+                progress = await self._post(client, API_PROGRESS, {})
                 finished = (progress.get("progress") or {}).get("finished", 0)
                 if finished:
-                    # `until` is the connector's effective "today". Keeping
-                    # the override inside the requested window also makes
-                    # scheduled/replayed syncs deterministic across timezones.
                     today_override = (
                         until,
                         {
@@ -73,16 +87,16 @@ class MaimemoConnector:
             except Exception:  # noqa: BLE001 — beta endpoint; pagination still works
                 pass
 
-            # History: sliding next_study_date window, bucketed by last_study_date.
+            # History: sliding next_study_date window (end-only), bucketed by
+            # last_study_date. Rate limits: 20/10s, 40/60s, 2000/5h.
             window_end = datetime(until.year, until.month, until.day, 23, 59, 59)
             cursor = window_end.strftime("%Y-%m-%dT%H:%M:%S.000+08:00")
             for _ in range(20):  # ≤20 pages (1000 × 20 words is beyond any vocab)
-                body = {
-                    "next_study_date": {"start": None, "end": cursor},
-                    "limit": 1000,
-                    "as_count": False,
-                }
-                data = await self._post(client, "/study/query_study_records", body)
+                data = await self._post(
+                    client,
+                    API_RECORDS,
+                    {"next_study_date": {"end": cursor}, "limit": 1000},
+                )
                 records = data.get("records") or []
                 if not records:
                     break

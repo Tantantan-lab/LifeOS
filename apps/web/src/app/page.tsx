@@ -12,7 +12,6 @@ import { InsightsPreview } from "@/components/home/insights-preview";
 import { ContributionHeatmap } from "@/components/heatmap/contribution-heatmap";
 import { Panel } from "@/components/primitives/panel";
 import { SectionHeading } from "@/components/primitives/section-heading";
-import { HEATMAP_CAPTION } from "@/lib/copy";
 import {
   getDomainSummaries,
   getGoalProgress,
@@ -75,11 +74,7 @@ export default async function HomePage() {
           <ContributionHeatmap
             gridStart={heatmap.gridStart}
             days={heatmap.days}
-            size="sm"
-            showTabs={false}
-            showLegend={false}
           />
-          <div className="mt-3 text-micro text-fg-muted">{HEATMAP_CAPTION}</div>
         </Panel>
         <TodayColumn items={today} completion={todayCompletion} />
       </div>

@@ -9,6 +9,7 @@ import { HeatmapGrid } from "@/components/heatmap/heatmap-grid";
 import { HeatmapLegend } from "@/components/heatmap/heatmap-legend";
 import { HeatmapMonthLabels, HeatmapWeekdayLabels } from "@/components/heatmap/heatmap-labels";
 import { HeatmapTooltip } from "@/components/heatmap/heatmap-tooltip";
+import { HeatmapDayDetail } from "@/components/heatmap/heatmap-day-detail";
 
 const SIZE = {
   sm: { cell: 10, gap: 2, pitch: 12, cellCls: "size-2.5 rounded-[2px]", gapCls: "gap-[2px]" },
@@ -40,6 +41,7 @@ export function ContributionHeatmap({
     left: number;
     top: number;
   } | null>(null);
+  const [selected, setSelected] = useState<HeatmapDay | null>(null);
 
   const s = SIZE[size];
   const geometry = useMemo(() => buildGrid(gridStart, days.map((d) => d.date)), [gridStart, days]);
@@ -75,9 +77,11 @@ export function ContributionHeatmap({
             domain={domain}
             cellCls={s.cellCls}
             gapCls={s.gapCls}
+            selectedDate={selected?.date ?? null}
             onActive={(day, cellLeft, cellTop) =>
               setActive({ day, left: cellLeft, top: cellTop })
             }
+            onSelect={setSelected}
           />
           {active && (
             <HeatmapTooltip
@@ -94,6 +98,10 @@ export function ContributionHeatmap({
         <div className="mt-3">
           <HeatmapLegend domain={domain} />
         </div>
+      )}
+
+      {selected && (
+        <HeatmapDayDetail day={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

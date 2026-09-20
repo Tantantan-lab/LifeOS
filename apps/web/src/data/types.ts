@@ -68,6 +68,34 @@ export interface DomainSummary {
   /** Today's completion 0..1 (null for sleep). */
   todayCompletion: number | null;
   todayValueLabel: string | null;
+  /** Whether the domain has ANY data (keeps zero-data domains out of aggregates). */
+  hasData: boolean;
+}
+
+/** Evidence-based next step — the closing link of the core loop. */
+export interface NextBestAction {
+  /** "Study time · +35 min" */
+  title: string;
+  /** WHY this is recommended — never just "go study". */
+  reason: string;
+  domain: Domain;
+}
+
+export interface HeaderStatus {
+  greeting: string;
+  /** Data-driven line, e.g. "You're ahead of your 90-day self." */
+  line: string;
+  dateLabel: string;
+}
+
+export interface DataSourceRow {
+  source: Source;
+  label: string;
+  connected: boolean;
+  lastSyncAt: string | null;
+  events30d: number;
+  /** true → a real connector (sync via the API); false → mock provenance. */
+  isConnector: boolean;
 }
 
 export interface HeatmapDayCell {

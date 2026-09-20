@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { GoalProgressHero } from "@/components/home/goal-progress-hero";
 import { DomainRow } from "@/components/home/domain-row";
 import { TodayColumn } from "@/components/home/today-column";
@@ -15,16 +16,20 @@ import {
   getDomainSummaries,
   getGoalProgress,
   getGoals,
+  getHeaderStatus,
   getHeatmapData,
   getInsightsPreview,
   getMeVsMeAll,
+  getNextBestAction,
+  getTodayGoalCompletion,
   getTodaySnapshot,
 } from "@/data/selectors";
 
 export const metadata: Metadata = { title: "Home" };
 
 export default async function HomePage() {
-  const [progress, summaries, heatmap, today, meVsMe, goals, insights] =
+  const [progress, summaries, heatmap, today, meVsMe, goals, insights,
+    header, todayCompletion, nextAction] =
     await Promise.all([
       getGoalProgress(),
       getDomainSummaries(),
@@ -33,10 +38,16 @@ export default async function HomePage() {
       getMeVsMeAll(),
       getGoals(),
       getInsightsPreview(),
+      getHeaderStatus(),
+      getTodayGoalCompletion(),
+      getNextBestAction(),
     ]);
 
   return (
     <div className="space-y-5">
+      {/* 0. Data-driven header */}
+      <DashboardHeader status={header} />
+
       {/* 1. How am I doing? */}
       <GoalProgressHero progress={progress} />
 
@@ -66,7 +77,11 @@ export default async function HomePage() {
           />
           <div className="mt-3 text-micro text-fg-muted">{HEATMAP_CAPTION}</div>
         </Panel>
-        <TodayColumn items={today} />
+        <TodayColumn
+          items={today}
+          completion={todayCompletion}
+          action={nextAction}
+        />
       </div>
 
       {/* 4. Me vs Me · Goals · Insights */}

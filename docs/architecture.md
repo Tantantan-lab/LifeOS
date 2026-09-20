@@ -80,7 +80,8 @@ docs                this directory
 | M1 | UI: Home / Contribution / Me vs Me / Goals + design system, deterministic mock data | ✅ done |
 | M2 | Database: users / events / goals / metrics / data_sources on one plain Postgres container (sub2api-style), seeded 365-day history, read path switched to the DB, private-by-default via localhost-only binding | ✅ done |
 | M3 | Five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick, all official APIs), AI insights pipeline (analytics summary → DeepSeek → FACT/TREND/GAP/ACTION), real "today" | ✅ done (live syncs pending the user's credentials) |
-| M4 | Manual input, more connectors (Bilibili video, Hevy, …), reading minutes join the learning goal | next |
+| M4 | Interaction gaps from the Master UI Prompt: Next Best Action (with reason), Heatmap Day Detail, Dashboard Header, Daily Goal ring, Data Sources page | ✅ done |
+| M5 | Finance / Nutrition domains, Health page, more connectors, manual input | next |
 | M4 | Analytics: 7D / 30D / 90D / 365D + connectors foundation | |
 | M5 | GitHub connector — first automatic source | |
 | M6 | AI insights (weekly review) | |

@@ -93,6 +93,34 @@ function toLifeEvent(r: DbEventRow): LifeEvent {
   };
 }
 
+/** Connector registry + sync status + trailing-30d event counts. */
+const CONNECTOR_SOURCES = new Set(["github", "weread", "maimemo", "ticktick"]);
+
+export async function getDataSources(): Promise<
+  import("@/data/types").DataSourceRow[]
+> {
+  await connection();
+  const userId = await resolveOwnerUserId();
+  const { rows } = await db().query(
+    `select ds.source, ds.label, ds.connected, ds.last_sync_at,
+            (select count(*)::int from events e
+              where e.user_id = ds.user_id and e.source = ds.source
+                and e.local_date >= current_date - 30) as events30
+       from data_sources ds
+      where ds.user_id = $1
+      order by ds.source`,
+    [userId]
+  );
+  return rows.map((r) => ({
+    source: r.source,
+    label: r.label,
+    connected: r.connected,
+    lastSyncAt: r.last_sync_at ? new Date(r.last_sync_at).toISOString() : null,
+    events30d: r.events30,
+    isConnector: CONNECTOR_SOURCES.has(r.source),
+  }));
+}
+
 /** Latest stored AI insight for a period (null = not generated yet). */
 export async function getLatestInsight(
   period: "week" | "month"

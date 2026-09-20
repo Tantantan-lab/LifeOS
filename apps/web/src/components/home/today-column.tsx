@@ -1,14 +1,29 @@
-import type { TodayItem } from "@/data/types";
+import type { NextBestAction, TodayItem } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { SectionHeading } from "@/components/primitives/section-heading";
+import { ArrowRight } from "lucide-react";
 import { NO_ENTRIES_TODAY } from "@/lib/copy";
+import { formatPct } from "@/lib/format";
 
 /** Compact timeline of everything logged today, newest first. */
-export function TodayColumn({ items }: { items: TodayItem[] }) {
+export function TodayColumn({
+  items,
+  completion,
+  action,
+}: {
+  items: TodayItem[];
+  /** Today's overall goal completion 0..1 (null = no data at all). */
+  completion: number | null;
+  action: NextBestAction | null;
+}) {
   return (
     <Panel className="flex h-full flex-col">
-      <SectionHeading title="Today" />
+      <div className="flex items-center justify-between">
+        <SectionHeading title="Today" />
+        {completion !== null && <DailyGoalRing completion={completion} />}
+      </div>
+
       {items.length === 0 ? (
         <div className="flex flex-1 items-center justify-center py-8 text-fg-secondary">
           {NO_ENTRIES_TODAY}
@@ -34,6 +49,61 @@ export function TodayColumn({ items }: { items: TodayItem[] }) {
           ))}
         </ol>
       )}
+
+      {action && <NextBestActionCard action={action} />}
     </Panel>
+  );
+}
+
+/** Ring progress — TODAY's goal completion, never a "life score". */
+function DailyGoalRing({ completion }: { completion: number }) {
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  const pct = Math.round(completion * 100);
+  return (
+    <div className="relative size-12 shrink-0" title="Daily Goal completion">
+      <svg viewBox="0 0 40 40" className="size-12 -rotate-90">
+        <circle
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          stroke="var(--color-surface-2)"
+          strokeWidth="4"
+        />
+        <circle
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          stroke="var(--color-brand)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${(pct / 100) * c} ${c}`}
+        />
+      </svg>
+      <span className="num absolute inset-0 flex items-center justify-center text-micro text-fg">
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
+/** The closing link of the core loop — action + evidence, never "go study". */
+function NextBestActionCard({ action }: { action: NextBestAction }) {
+  return (
+    <div className="mt-4 rounded-[10px] border border-border bg-surface-2/60 p-3">
+      <div className="flex items-center gap-2">
+        <DomainDot domain={action.domain} />
+        <span className="text-micro uppercase tracking-[0.12em] text-fg-muted">
+          Next Best Action
+        </span>
+        <ArrowRight className="ml-auto size-4 text-fg-muted" />
+      </div>
+      <div className="mt-1.5 text-sm font-medium text-fg">{action.title}</div>
+      <div className="mt-1 text-micro text-fg-muted">
+        Reason: {action.reason}
+      </div>
+    </div>
   );
 }

@@ -50,6 +50,8 @@ export function HeatmapGrid({
   cellCls,
   gapCls,
   onActive,
+  onSelect,
+  selectedDate,
 }: {
   days: HeatmapDay[];
   leadingBlanks: number;
@@ -57,6 +59,8 @@ export function HeatmapGrid({
   cellCls: string;
   gapCls: string;
   onActive: (day: HeatmapDay, left: number, top: number) => void;
+  onSelect: (day: HeatmapDay) => void;
+  selectedDate: string | null;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusIdx, setFocusIdx] = useState(days.length - 1);
@@ -120,6 +124,7 @@ export function HeatmapGrid({
           data-date={day.date}
           data-level={levelOf(day)}
           role="gridcell"
+          aria-selected={selectedDate === day.date}
           tabIndex={i === focusIdx ? 0 : -1}
           aria-label={cellAriaLabel(day, domain)}
           className={cn("hm-cell", cellCls)}
@@ -128,6 +133,7 @@ export function HeatmapGrid({
             setFocusIdx(i);
           }}
           onFocus={() => setFocusIdx(i)}
+          onClick={() => onSelect(day)}
         />
       ))}
     </div>

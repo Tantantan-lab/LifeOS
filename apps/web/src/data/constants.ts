@@ -145,6 +145,7 @@ export const GOAL_ROWS: {
   key: string;
   domain: Domain;
   metric: string;
+  label: string;
   targetLabel: string;
   mode: "avg" | "weekly" | "band";
   dayGoal: number;
@@ -152,13 +153,13 @@ export const GOAL_ROWS: {
   bandMin: number | null;
   bandMax: number | null;
 }[] = [
-  { key: "study", domain: "learning", metric: "learning.study.minutes", targetLabel: "120 min/day", mode: "avg", dayGoal: 120, weeklyGoal: null, bandMin: null, bandMax: null },
-  { key: "reading", domain: "learning", metric: "learning.reading.minutes", targetLabel: "30 min/day (soft)", mode: "avg", dayGoal: 30, weeklyGoal: null, bandMin: null, bandMax: null },
-  { key: "words", domain: "english", metric: "english.words.reviewed", targetLabel: "40 words/day", mode: "avg", dayGoal: 40, weeklyGoal: null, bandMin: null, bandMax: null },
-  { key: "commits", domain: "coding", metric: "coding.commits", targetLabel: "10 commits/week", mode: "weekly", dayGoal: 0, weeklyGoal: 10, bandMin: null, bandMax: null },
-  { key: "workout", domain: "health", metric: "health.workout.session", targetLabel: "3 sessions/week", mode: "weekly", dayGoal: 0, weeklyGoal: 3, bandMin: null, bandMax: null },
-  { key: "sleep", domain: "health", metric: "health.sleep.minutes", targetLabel: "6.5–7.5h band", mode: "band", dayGoal: 420, weeklyGoal: null, bandMin: 390, bandMax: 450 },
-  { key: "tasks", domain: "productivity", metric: "productivity.tasks.completed", targetLabel: "15 tasks/week", mode: "weekly", dayGoal: 0, weeklyGoal: 15, bandMin: null, bandMax: null },
+  { key: "study", domain: "learning", metric: "learning.study.minutes", label: "Study time", targetLabel: "120 min/day", mode: "avg", dayGoal: 120, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "reading", domain: "learning", metric: "learning.reading.minutes", label: "Reading", targetLabel: "30 min/day (soft)", mode: "avg", dayGoal: 30, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "words", domain: "english", metric: "english.words.reviewed", label: "Vocabulary", targetLabel: "40 words/day", mode: "avg", dayGoal: 40, weeklyGoal: null, bandMin: null, bandMax: null },
+  { key: "commits", domain: "coding", metric: "coding.commits", label: "Commits", targetLabel: "10 commits/week", mode: "weekly", dayGoal: 0, weeklyGoal: 10, bandMin: null, bandMax: null },
+  { key: "workout", domain: "health", metric: "health.workout.session", label: "Workouts", targetLabel: "3 sessions/week", mode: "weekly", dayGoal: 0, weeklyGoal: 3, bandMin: null, bandMax: null },
+  { key: "sleep", domain: "health", metric: "health.sleep.minutes", label: "Sleep", targetLabel: "6.5–7.5h band", mode: "band", dayGoal: 420, weeklyGoal: null, bandMin: 390, bandMax: 450 },
+  { key: "tasks", domain: "productivity", metric: "productivity.tasks.completed", label: "Tasks completed", targetLabel: "15 tasks/week", mode: "weekly", dayGoal: 0, weeklyGoal: 15, bandMin: null, bandMax: null },
 ];
 
 /**

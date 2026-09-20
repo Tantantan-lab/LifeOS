@@ -83,6 +83,8 @@ async function main() {
     ["5 domain cards", `document.querySelectorAll("main .grid > *").length > 0 && (document.body.innerText.match(/Learning|English|Coding|Health|Productivity/g) || []).length >= 5`],
     ["no horizontal overflow", `document.documentElement.scrollWidth <= window.innerWidth`],
     ["no Life Score wording", `!document.body.innerText.includes("Life Score")`],
+    ["data-driven header present", `document.body.innerText.includes("Good") && document.body.innerText.includes("90-day self")`],
+    ["Next Best Action with reason", `document.body.innerText.toUpperCase().includes("NEXT BEST ACTION") && document.body.innerText.includes("Reason:")`],
   ]);
 
   // ---------- Contribution ----------
@@ -94,6 +96,13 @@ async function main() {
     ["tab switch recolor works", `(async () => { const tabs = document.querySelectorAll('[role="tab"]'); tabs[2].click(); await new Promise(r => setTimeout(r, 400)); const grid = document.querySelector('.hm-grid'); const cell = document.querySelector('button.hm-cell[data-level="4"]'); return grid.dataset.domain === 'english' && getComputedStyle(cell).backgroundColor !== 'rgb(99, 102, 241)'; })()`],
     ["month labels present", `document.querySelectorAll('.relative.h-5 span').length >= 10`],
     ["no horizontal overflow", `document.documentElement.scrollWidth <= window.innerWidth`],
+    ["click cell opens Day Detail", `(async () => { const cell = document.querySelector('button.hm-cell'); cell.click(); await new Promise(r => setTimeout(r, 300)); const dlg = document.querySelector('[role="dialog"]'); const ok = dlg && document.body.innerText.includes("Daily Goal:"); const close = document.querySelector('[aria-label="Close day detail"]'); if (close) close.click(); return ok; })()`],
+  ]);
+
+  // ---------- Data Sources ----------
+  await checkPage("/data-sources", [
+    ["connector cards render", `document.body.innerText.includes("GitHub") && document.body.innerText.includes("WeRead") && document.body.innerText.includes("Maimemo") && document.body.innerText.includes("TickTick")`],
+    ["sync status lines", `document.body.innerText.includes("Last sync:") && (document.body.innerText.includes("Connected") || document.body.innerText.includes("Disconnected"))`],
   ]);
 
   // ---------- Me vs Me ----------

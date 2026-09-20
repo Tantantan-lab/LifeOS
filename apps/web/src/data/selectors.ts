@@ -27,11 +27,13 @@ import {
 } from "@/data/constants";
 import { getEvents, getLatestInsight } from "@/data/db";
 import type {
+  DataSourceRow,
   Domain,
   DomainSummary,
   GapItem,
   GoalProgress,
   GoalRow,
+  HeaderStatus,
   HeatmapDay,
   HeatmapDayCell,
   HeatmapDomain,
@@ -40,16 +42,18 @@ import type {
   Level,
   LifeEvent,
   MeVsMeWindow,
+  NextBestAction,
   SkillBenchmark,
   TodayItem,
   Trend,
   VersusRow,
   WindowKey,
 } from "@/data/types";
-import { addDays, daysBetween, formatRange } from "@/lib/dates";
+import { getDataSources as getDataSourcesDb } from "@/data/db";
+import { addDays, daysBetween, formatDateLong, formatRange } from "@/lib/dates";
 import { formatCount, formatDuration, formatHours1, formatMonthDay, formatTime } from "@/lib/format";
 import { SOURCE_LABELS } from "@/lib/copy";
-import { todayKey } from "@/lib/today";
+import { LIFEOS_TIMEZONE, todayKey } from "@/lib/today";
 
 /* ------------------------------------------------------------------ */
 /* Event index (lazy — built from Postgres on first await)             */
@@ -260,6 +264,7 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
       spark,
       todayCompletion,
       todayValueLabel,
+      hasData: nowSum > 0 || thenSum > 0,
     };
   });
 }
@@ -662,6 +667,99 @@ export async function getInsightsPreview(): Promise<InsightsPreviewResult> {
       },
     ],
   };
+}
+
+/* ---- Next Best Action / header status / data sources ---- */
+
+/** Today's overall goal completion (data-aware mean) — the Daily Goal ring. */
+export async function getTodayGoalCompletion(): Promise<number | null> {
+  const idx = await getEventIndex();
+  const today = todayKey();
+  const active = domainsWithData(idx, today);
+  if (active.size === 0) return null;
+  return completionAllOn(idx, today, active);
+}
+
+/**
+ * Next Best Action — the closing link of the core loop. Picks the goal
+ * row with the LOWEST 30-day completion (skipping no-data rows and the
+ * sleep band, which is health-adjacent advice), then quantifies the gap
+ * into a concrete step. The reason is always the evidence.
+ */
+export async function getNextBestAction(): Promise<NextBestAction | null> {
+  const idx = await getEventIndex();
+  const today = todayKey();
+  const last30 = windowRange(PREV_OFFSETS.last30, today);
+
+  let best: { row: (typeof GOAL_ROWS)[number]; completion: number } | null = null;
+  for (const row of GOAL_ROWS) {
+    if (row.mode === "band") continue;
+    const nowSum = sumMetric(idx, row.domain, row.metric, last30.from, last30.to);
+    if (nowSum <= 0) continue; // no data → no recommendation
+    const completion =
+      row.mode === "weekly"
+        ? Math.min(1, (nowSum * 7) / 30 / (row.weeklyGoal ?? 1))
+        : Math.min(1, nowSum / 30 / row.dayGoal);
+    if (completion >= 1) continue;
+    if (!best || completion < best.completion) best = { row, completion };
+  }
+  if (!best) return null;
+
+  const { row, completion } = best;
+  const gapPct = Math.round((1 - completion) * 100);
+  const isDuration = row.metric.endsWith(".minutes");
+  const extra = isDuration
+    ? Math.max(5, Math.round((1 - completion) * row.dayGoal))
+    : Math.max(1, Math.round((1 - completion) * (row.weeklyGoal ?? 0)));
+  return {
+    title: isDuration ? `${row.label} · +${extra} min` : `${row.label} · +${extra} more`,
+    reason: `${row.label} is ${gapPct}% below its target (${row.targetLabel}) over the last 30 days.`,
+    domain: row.domain,
+  };
+}
+
+/** Greeting + data-driven status line + formatted date for the header. */
+export async function getHeaderStatus(): Promise<HeaderStatus> {
+  const idx = await getEventIndex();
+  const today = todayKey();
+  const last90 = windowRange(PREV_OFFSETS.last90, today);
+  const prev90 = windowRange(PREV_OFFSETS.prev90, today);
+
+  // 90-day deltas over data-bearing domains (the line must come from data).
+  let total = 0;
+  let n = 0;
+  for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
+    const meta = DOMAIN_META[domain];
+    const now = sumMetric(idx, domain, meta.primaryMetric, last90.from, last90.to);
+    const then = sumMetric(idx, domain, meta.primaryMetric, prev90.from, prev90.to);
+    if (now === 0 && then === 0) continue;
+    total += deltaPctOf(now, then);
+    n++;
+  }
+  const avgDelta = n > 0 ? total / n : 0;
+  const line =
+    avgDelta > 3
+      ? "You're ahead of your 90-day self."
+      : avgDelta < -3
+        ? "You're below your 90-day baseline."
+        : "You're holding steady vs your 90-day self.";
+
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: LIFEOS_TIMEZONE,
+      hour: "numeric",
+      hour12: false,
+    }).format(new Date())
+  );
+  const greeting =
+    hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
+
+  return { greeting, line, dateLabel: formatDateLong(today) };
+}
+
+/** Connector registry + sync status + trailing-30d event counts. */
+export async function getDataSources(): Promise<DataSourceRow[]> {
+  return getDataSourcesDb();
 }
 
 /* ------------------------------------------------------------------ */

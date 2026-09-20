@@ -48,3 +48,14 @@ export function formatMonthDay(key: string): string {
 export function formatTime(timestamp: string): string {
   return timestamp.slice(11, 16);
 }
+
+/** "just now" / "5 min ago" / "3 h ago" / "2 d ago" — sync-status display. */
+export function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} h ago`;
+  return `${Math.floor(h / 24)} d ago`;
+}

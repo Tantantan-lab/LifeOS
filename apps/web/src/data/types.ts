@@ -83,6 +83,13 @@ export interface NextBestAction {
   metric: string;
   /** Suggested session length in minutes. */
   minutes: number;
+  /** Structured fields so UIs can compose locale-specific sentences. */
+  label: string;
+  gapPct: number;
+  targetLabel: string;
+  /** true when the suggestion is a duration ("+N min"), false for counts. */
+  isDuration: boolean;
+  extra: number;
 }
 
 export interface InsightTrendRow {

@@ -789,6 +789,11 @@ export async function getNextBestAction(): Promise<NextBestAction | null> {
     domain: row.domain,
     metric: row.metric,
     minutes: isDuration ? extra : 0,
+    label: row.label,
+    gapPct,
+    targetLabel: row.targetLabel,
+    isDuration,
+    extra,
   };
 }
 

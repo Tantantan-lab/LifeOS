@@ -10,12 +10,14 @@ from .github import GithubConnector
 from .maimemo import MaimemoConnector
 from .ticktick import TicktickConnector
 from .weread import WereadConnector
+from .xunji import XunjiConnector
 
 REGISTRY: dict[str, type[Connector]] = {
     "github": GithubConnector,
     "weread": WereadConnector,
     "maimemo": MaimemoConnector,
     "ticktick": TicktickConnector,
+    "xunji": XunjiConnector,
 }
 
 

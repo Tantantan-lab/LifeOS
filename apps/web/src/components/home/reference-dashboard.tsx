@@ -157,6 +157,7 @@ const zhLabels: Record<string, string> = {
   Commits: "提交", Coding: "编程", "Tasks completed": "完成任务",
   "IELTS mock": "雅思模考", Workouts: "健身", "Overseas Engineer": "海外工程师", Cloud: "云",
   "Vocabulary time": "词汇时长",
+  "Workout time": "训练时长",
 };
 const zhStatus: Record<string, string> = {
   "Not started": "未开始", "Not assessed": "未评估",

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     github_token: str = ""
     weread_api_key: str = ""
     maimemo_token: str = ""
+    xunji_token: str = ""
 
     ticktick_region: str = "cn"  # cn → dida365.com · intl → ticktick.com
     ticktick_client_id: str = ""

@@ -148,6 +148,7 @@ export const VERSUS_ROWS: {
   { key: "english-time", domain: "english", metric: "english.minutes", label: "Vocabulary time", aggregation: "avg", format: "duration", unitLabel: "/day" },
   { key: "coding", domain: "coding", metric: "coding.minutes", label: "Coding", aggregation: "sum", format: "hours1", unitLabel: "" },
   { key: "workout", domain: "health", metric: "health.workout.session", label: "Workouts", aggregation: "sum", format: "count", unitLabel: "sessions" },
+  { key: "workout-time", domain: "health", metric: "health.workout.minutes", label: "Workout time", aggregation: "sum", format: "duration", unitLabel: "total" },
   { key: "sleep", domain: "health", metric: "health.sleep.minutes", label: "Sleep", aggregation: "avg", format: "duration", unitLabel: "/night" },
   { key: "tasks", domain: "productivity", metric: "productivity.tasks.completed", label: "Tasks completed", aggregation: "sum", format: "count", unitLabel: "tasks" },
 ];

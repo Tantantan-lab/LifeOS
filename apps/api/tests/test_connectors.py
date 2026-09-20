@@ -14,6 +14,7 @@ from app.config import settings
 from app.connectors.maimemo import MaimemoConnector
 from app.connectors.ticktick import TicktickConnector, _completed_date
 from app.connectors.weread import WereadConnector, _ts_to_date
+from app.connectors.xunji import XunjiConnector
 
 
 def _run(coro):
@@ -226,3 +227,57 @@ def test_ticktick_aggregation(monkeypatch, tmp_path):
     assert by_day["2026-09-18"].metric == "productivity.tasks.completed"
     assert by_day["2026-09-18"].metadata["by_project"] == {"Work": 2, "Home": 2}
     assert by_day["2026-09-17"].value == 2
+
+
+# ---------------------------------------------------------------- xunji
+
+
+def test_xunji_day_mapping(monkeypatch):
+    monkeypatch.setattr(settings, "xunji_token", "xjllm_test")
+
+    import app.connectors.xunji as xj
+
+    client = _patch_client(
+        xj,
+        monkeypatch,
+        [
+            FakeResponse(
+                200,
+                {
+                    "res": {
+                        "trains": [
+                            {
+                                "localid": 1,
+                                "title": "传统力量训练",
+                                "start": 1744010000000,
+                                "end": 1744013600000,  # 60 min
+                                "movements": [
+                                    {"name": "BenchPress", "sets": [
+                                        {"done": True, "weight": "60", "unit": "kg", "reps": "10"},
+                                        {"done": True, "weight": "70", "unit": "kg", "reps": "8"},
+                                    ]},
+                                ],
+                            },
+                        ]
+                    }
+                },
+            ),
+            # next day (pacing loop) — empty
+            FakeResponse(200, {"res": {"trains": []}}),
+        ],
+    )
+
+    points = _run(XunjiConnector().fetch(date(2026, 4, 2), date(2026, 4, 3)))
+    sessions = [p for p in points if p.metric == "health.workout.session"]
+    minutes = [p for p in points if p.metric == "health.workout.minutes"]
+    assert len(sessions) == 1
+    assert sessions[0].metadata["title"] == "传统力量训练"
+    assert sessions[0].metadata["top_weights"] == [{"name": "BenchPress", "weight": 70.0}]
+    assert len(minutes) == 1
+    assert minutes[0].value == 60
+    assert minutes[0].source == "xunji"
+
+    method, url, kw = client.calls[0]
+    assert url == "https://trains.xunjiapp.cn/api_trains_for_llm_v2"
+    assert kw["json"]["datestr"] == "2026-04-02"
+    assert kw["json"]["include_full_data"] is False

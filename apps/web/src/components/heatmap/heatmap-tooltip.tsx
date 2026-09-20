@@ -1,6 +1,6 @@
 import type { HeatmapDay } from "@/data/types";
 import type { HeatmapFilter } from "@/components/heatmap/heatmap-filter-tabs";
-import { DOMAIN_META } from "@/data/constants";
+import { HEATMAP_META } from "@/data/constants";
 import { formatDateLong } from "@/lib/dates";
 import { noLogged, SOURCE_LABELS } from "@/lib/copy";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const LABEL: Record<HeatmapFilter, string> = {
   english: "English",
   coding: "Coding",
   productivity: "Productivity",
+  fitness: "Fitness",
 };
 
 const UNIT: Record<HeatmapFilter, string> = {
@@ -19,6 +20,7 @@ const UNIT: Record<HeatmapFilter, string> = {
   english: "words",
   coding: "commits",
   productivity: "tasks",
+  fitness: "sessions",
 };
 
 /**
@@ -46,7 +48,7 @@ export function HeatmapTooltip({
     goalLine = "4-domain average";
     sourceLine = "learning · english · coding · productivity";
   } else {
-    const meta = DOMAIN_META[domain];
+    const meta = HEATMAP_META[domain];
     const cell = day[domain];
     const pct = Math.round(cell.completion * 100);
     if (cell.value === 0) {
@@ -56,7 +58,8 @@ export function HeatmapTooltip({
       valueLine = `${cell.displayValue} ${UNIT[domain]}${meta.goalMode === "trailing7" ? " this week" : ""}`;
       goalLine = `${pct}% of ${meta.goalLabel}`;
     }
-    sourceLine = `${SOURCE_LABELS[meta.sources[0]]} · ${meta.confidences[0]} confidence`;
+    const source = { learning: "timer", english: "anki", coding: "demo", productivity: "demo", fitness: "xunji" }[domain] as "timer";
+    sourceLine = `${SOURCE_LABELS[source]} · 0.95 confidence`;
   }
 
   return (

@@ -12,11 +12,16 @@ export type Domain =
   | "productivity";
 
 /**
- * Domains that participate in the heatmap. Health is excluded by design:
- * sleep's target is a band (not a floor) and health carries two unlike
- * metrics (sleep + workout).
+ * Heatmap facets. Sleep stays excluded (band target — not "more is
+ * better"); workouts are a facet of their own with a trailing-7 weekly
+ * goal since real Xunji data arrived.
  */
-export type HeatmapDomain = "learning" | "english" | "coding" | "productivity";
+export type HeatmapDomain =
+  | "learning"
+  | "english"
+  | "coding"
+  | "productivity"
+  | "fitness";
 
 /** "demo" = seeded mock history; the rest are real connectors. */
 export type Source =
@@ -144,6 +149,7 @@ export interface HeatmapDay {
   english: HeatmapDayCell;
   coding: HeatmapDayCell;
   productivity: HeatmapDayCell;
+  fitness: HeatmapDayCell;
 }
 
 export type WindowKey = "30D" | "90D" | "1Y" | "Beginning";

@@ -130,7 +130,26 @@ export const HEATMAP_DOMAINS: HeatmapDomain[] = [
   "english",
   "coding",
   "productivity",
+  "fitness",
 ];
+
+/** Workout facet metadata — fitness is a heatmap facet, not a domain card. */
+export const FITNESS_HEATMAP = {
+  domain: "health" as Domain,
+  metric: "health.workout.session",
+  weeklyGoal: 3,
+};
+
+export const HEATMAP_META: Record<
+  HeatmapDomain,
+  { label: string; goalLabel: string; goalMode: "day" | "trailing7"; unit: string }
+> = {
+  learning: { label: "Learning", goalLabel: "120 min/day", goalMode: "day", unit: "min" },
+  english: { label: "English", goalLabel: "40 words/day", goalMode: "day", unit: "words" },
+  coding: { label: "Coding", goalLabel: "10 commits/week", goalMode: "trailing7", unit: "commits" },
+  productivity: { label: "Productivity", goalLabel: "15 tasks/week", goalMode: "trailing7", unit: "tasks" },
+  fitness: { label: "Fitness", goalLabel: "3 sessions/week", goalMode: "trailing7", unit: "sessions" },
+};
 
 /** Me vs Me rows — metric-keyed; rows without data are filtered at render. */
 export const VERSUS_ROWS: {

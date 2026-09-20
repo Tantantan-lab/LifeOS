@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import type { HeatmapDay } from "@/data/types";
-import { DOMAIN_META, HEATMAP_DOMAINS } from "@/data/constants";
+import { HEATMAP_DOMAINS, HEATMAP_META } from "@/data/constants";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { formatDateLong } from "@/lib/dates";
 import { noLogged } from "@/lib/copy";
@@ -44,13 +44,13 @@ export function HeatmapDayDetail({
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {HEATMAP_DOMAINS.map((domain) => {
           const cell = day[domain];
-          const meta = DOMAIN_META[domain];
+          const meta = HEATMAP_META[domain];
           const valueLabel =
             cell.value === 0
               ? noLogged(meta.label)
               : meta.goalMode === "trailing7"
-                ? `${cell.displayValue} ${meta.metricLabel.toLowerCase()} this week`
-                : `${cell.displayValue} ${meta.metricLabel.toLowerCase()}`;
+                ? `${cell.displayValue} ${meta.unit} this week`
+                : `${cell.displayValue} ${meta.unit}`;
           return (
             <div
               key={domain}

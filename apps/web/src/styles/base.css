@@ -125,6 +125,12 @@
   --hm-3: var(--hm-productivity-3);
   --hm-4: var(--hm-productivity-4);
 }
+.hm-grid[data-domain="fitness"] {
+  --hm-1: var(--hm-fitness-1);
+  --hm-2: var(--hm-fitness-2);
+  --hm-3: var(--hm-fitness-3);
+  --hm-4: var(--hm-fitness-4);
+}
 .hm-grid[data-domain="all"] {
   --hm-1: var(--hm-all-1);
   --hm-2: var(--hm-all-2);

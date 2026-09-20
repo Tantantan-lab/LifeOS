@@ -14,6 +14,7 @@ const FILTER_LABEL: Record<HeatmapFilter, string> = {
   english: "English",
   coding: "Coding",
   productivity: "Productivity",
+  fitness: "Fitness",
 };
 
 const FILTER_UNIT: Record<HeatmapFilter, string> = {
@@ -22,6 +23,7 @@ const FILTER_UNIT: Record<HeatmapFilter, string> = {
   english: "words",
   coding: "commits",
   productivity: "tasks",
+  fitness: "sessions",
 };
 
 export function cellAriaLabel(day: HeatmapDay, domain: HeatmapFilter): string {

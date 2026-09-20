@@ -1,12 +1,12 @@
 import { DOMAIN_BG_CLASS } from "@/lib/domain-colors";
-import type { Domain } from "@/data/types";
+import type { Domain, HeatmapDomain } from "@/data/types";
 import { cn } from "@/lib/utils";
 
 export function DomainDot({
   domain,
   className,
 }: {
-  domain: Domain;
+  domain: Domain | HeatmapDomain;
   className?: string;
 }) {
   return (

@@ -5,7 +5,7 @@ import { ContributionHeatmap } from "@/components/heatmap/contribution-heatmap";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { ProgressBar } from "@/components/primitives/progress-bar";
 import { getHeatmapData, getHeatmapStats } from "@/data/selectors";
-import { DOMAIN_META } from "@/data/constants";
+import { HEATMAP_META } from "@/data/constants";
 import { formatPct } from "@/lib/format";
 import { HEATMAP_CAPTION } from "@/lib/copy";
 
@@ -56,7 +56,7 @@ export default async function ContributionPage() {
               <div key={entry.domain} className="flex items-center gap-3">
                 <DomainDot domain={entry.domain} />
                 <span className="w-24 shrink-0 text-sm text-fg-secondary">
-                  {DOMAIN_META[entry.domain].label}
+                  {HEATMAP_META[entry.domain].label}
                 </span>
                 <ProgressBar value={entry.avgCompletion} className="h-1" />
                 <span className="num w-28 shrink-0 text-right text-meta text-fg-muted">

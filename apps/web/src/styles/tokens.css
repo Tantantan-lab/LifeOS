@@ -35,6 +35,7 @@
   --color-domain-coding: #ff9f43;
   --color-domain-health: #45d483;
   --color-domain-productivity: #2dd4bf;
+  --color-domain-fitness: #45d483;
 
   /* ---- trends (the ONLY colors allowed for change semantics;
      light values darkened for AA contrast on white) ---- */
@@ -93,6 +94,11 @@
   --hm-productivity-3: color-mix(in oklab, #2dd4bf 80%, #ffffff);
   --hm-productivity-4: #2dd4bf;
 
+  --hm-fitness-1: color-mix(in oklab, #45d483 30%, #ffffff);
+  --hm-fitness-2: color-mix(in oklab, #45d483 55%, #ffffff);
+  --hm-fitness-3: color-mix(in oklab, #45d483 80%, #ffffff);
+  --hm-fitness-4: #45d483;
+
   --hm-all-1: color-mix(in oklab, #4f46e5 30%, #ffffff);
   --hm-all-2: color-mix(in oklab, #4f46e5 55%, #ffffff);
   --hm-all-3: color-mix(in oklab, #4f46e5 80%, #ffffff);
@@ -139,6 +145,11 @@ html.dark {
   --hm-productivity-2: color-mix(in oklab, #2dd4bf 45%, #161b25);
   --hm-productivity-3: color-mix(in oklab, #2dd4bf 72%, #161b25);
   --hm-productivity-4: #2dd4bf;
+
+  --hm-fitness-1: color-mix(in oklab, #45d483 22%, #161b25);
+  --hm-fitness-2: color-mix(in oklab, #45d483 45%, #161b25);
+  --hm-fitness-3: color-mix(in oklab, #45d483 72%, #161b25);
+  --hm-fitness-4: #45d483;
 
   --hm-all-1: color-mix(in oklab, #6366f1 22%, #161b25);
   --hm-all-2: color-mix(in oklab, #6366f1 45%, #161b25);

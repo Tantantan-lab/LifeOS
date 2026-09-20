@@ -14,6 +14,8 @@
 import {
   DATASET_START,
   DOMAIN_META,
+  FITNESS_HEATMAP,
+  HEATMAP_META,
   GAP_PACE_POINTS_PER_WEEK,
   GOAL_ROWS,
   HEATMAP_DOMAINS,
@@ -148,6 +150,16 @@ function dailySeriesAll(idx: EventIndex, domain: Domain, from: string, to: strin
  *  keep a streak alive on days where nothing actually happened. */
 function hasAnyEvent(idx: EventIndex, dateKey: string): boolean {
   for (const domain of HEATMAP_DOMAINS) {
+    if (domain === "fitness") {
+      if (
+        eventsOn(idx, FITNESS_HEATMAP.domain, dateKey).some(
+          (e) => e.metric === FITNESS_HEATMAP.metric
+        )
+      ) {
+        return true;
+      }
+      continue;
+    }
     if (eventsOn(idx, domain, dateKey).length > 0) return true;
   }
   return false;
@@ -159,6 +171,21 @@ function domainsWithData(idx: EventIndex, to: string): Set<HeatmapDomain> {
   const from = addDays(to, -29);
   const set = new Set<HeatmapDomain>();
   for (const domain of HEATMAP_DOMAINS) {
+    if (domain === "fitness") {
+      const dayMap = idx.byDomainDate.get(FITNESS_HEATMAP.domain);
+      if (!dayMap) continue;
+      for (const [dateKey, events] of dayMap) {
+        if (
+          daysBetween(from, dateKey) >= 0 &&
+          daysBetween(dateKey, to) >= 0 &&
+          events.some((e) => e.metric === FITNESS_HEATMAP.metric)
+        ) {
+          set.add(domain);
+          break;
+        }
+      }
+      continue;
+    }
     const dayMap = idx.byDomainDate.get(domain);
     if (!dayMap) continue;
     for (const dateKey of dayMap.keys()) {
@@ -185,12 +212,26 @@ export function levelOf(completion: number): Level {
 
 /** Completion vs goal, capped at 100% — 16h is never darker than 8h. */
 function completionForDomain(idx: EventIndex, domain: HeatmapDomain, dateKey: string): number {
+  if (domain === "fitness") {
+    const total = sumMetric(
+      idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(dateKey, -6), dateKey
+    );
+    return Math.min(1, total / FITNESS_HEATMAP.weeklyGoal);
+  }
   const meta = DOMAIN_META[domain];
   if (meta.goalMode === "day") {
     return Math.min(1, domainValueOn(idx, domain, dateKey) / meta.dayGoal);
   }
   const total = sumMetric(idx, domain, meta.primaryMetric, addDays(dateKey, -6), dateKey);
   return Math.min(1, total / (meta.weeklyGoal ?? 1));
+}
+
+/** Per-heatmap-facet value for a day (fitness reads the workout metric). */
+function heatmapValueOn(idx: EventIndex, domain: HeatmapDomain, dateKey: string): number {
+  if (domain === "fitness") {
+    return metricValueOn(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, dateKey);
+  }
+  return domainValueOn(idx, domain, dateKey);
 }
 
 /** Goal-row completion (GOAL_ROWS may target non-heatmap metrics). */
@@ -326,11 +367,15 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
     const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
     for (const domain of HEATMAP_DOMAINS) {
       const completion = completionForDomain(idx, domain, d);
-      const meta = DOMAIN_META[domain];
-      const value = domainValueOn(idx, domain, d);
+      const meta = HEATMAP_META[domain];
+      const value = heatmapValueOn(idx, domain, d);
       const displayValue =
         meta.goalMode === "trailing7"
-          ? sumMetric(idx, domain, meta.primaryMetric, addDays(d, -6), d)
+          ? completionForDomain(idx, domain, d) === 0
+            ? 0
+            : domain === "fitness"
+              ? sumMetric(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(d, -6), d)
+              : sumMetric(idx, domain, DOMAIN_META[domain].primaryMetric, addDays(d, -6), d)
           : value;
       cells[domain] = { completion, level: levelOf(completion), value, displayValue };
     }
@@ -343,6 +388,7 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
       english: cells.english,
       coding: cells.coding,
       productivity: cells.productivity,
+      fitness: cells.fitness,
     });
   }
   return { gridStart: sundayOnOrBefore(yearStart), days };
@@ -614,7 +660,11 @@ export async function getHeatmapStats(): Promise<HeatmapStats> {
     let activeDays = 0;
     let sumCompletion = 0;
     for (let d = DATASET_START; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
-      if (eventsOn(idx, domain, d).length > 0) {
+      const hasData =
+        domain === "fitness"
+          ? eventsOn(idx, FITNESS_HEATMAP.domain, d).some((e) => e.metric === FITNESS_HEATMAP.metric)
+          : eventsOn(idx, domain, d).length > 0;
+      if (hasData) {
         activeDays++;
         sumCompletion += completionForDomain(idx, domain, d);
       }

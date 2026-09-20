@@ -7,18 +7,23 @@ import { NextActionCard } from "@/components/home/next-action-card";
 import { DomainRow } from "@/components/home/domain-row";
 import { TodayColumn } from "@/components/home/today-column";
 import { MeVsMeExplorer } from "@/components/me-vs-me/me-vs-me-explorer";
-import { GoalsSummary } from "@/components/home/goals-summary";
-import { InsightsPreview } from "@/components/home/insights-preview";
+import { GoalCards } from "@/components/goals/goal-cards";
+import { BenchmarkBars } from "@/components/goals/benchmark-bars";
+import { GapList } from "@/components/goals/gap-list";
+import { InsightsExplorer } from "@/components/insights/insights-explorer";
 import { ContributionHeatmap } from "@/components/heatmap/contribution-heatmap";
 import { Panel } from "@/components/primitives/panel";
 import { SectionHeading } from "@/components/primitives/section-heading";
 import {
+  getBenchmarks,
   getDomainSummaries,
+  getGaps,
   getGoalProgress,
   getGoals,
   getHeaderStatus,
   getHeatmapData,
-  getInsightsPreview,
+  getInsight,
+  getInsightTrends,
   getMeVsMeAll,
   getNextBestAction,
   getTodayGoalCompletion,
@@ -28,8 +33,8 @@ import {
 export const metadata: Metadata = { title: "Home" };
 
 export default async function HomePage() {
-  const [progress, summaries, heatmap, today, meVsMe, goals, insights,
-    header, todayCompletion, nextAction] =
+  const [progress, summaries, heatmap, today, meVsMe, goals, benchmarks,
+    gaps, insight, trends, header, todayCompletion, nextAction] =
     await Promise.all([
       getGoalProgress(),
       getDomainSummaries(),
@@ -37,7 +42,10 @@ export default async function HomePage() {
       getTodaySnapshot(),
       getMeVsMeAll(),
       getGoals(),
-      getInsightsPreview(),
+      getBenchmarks(),
+      getGaps(),
+      getInsight("week"),
+      getInsightTrends(),
       getHeaderStatus(),
       getTodayGoalCompletion(),
       getNextBestAction(),
@@ -82,11 +90,20 @@ export default async function HomePage() {
       {/* 4. Me vs Me — the full explorer, identical to /me-vs-me */}
       <MeVsMeExplorer windows={meVsMe} />
 
-      {/* 5. Goals · Insights */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <GoalsSummary goals={goals} />
-        <InsightsPreview insights={insights} />
+      {/* 5. Goals — full cards + benchmark + gap, identical to /goals */}
+      <GoalCards goals={goals} />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <BenchmarkBars skills={benchmarks} />
+        <GapList gaps={gaps} />
       </div>
+
+      {/* 6. Insights — the full explorer, identical to /insights */}
+      <InsightsExplorer
+        insight={insight}
+        trends={trends}
+        gaps={gaps}
+        period="week"
+      />
     </div>
   );
 }

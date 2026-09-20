@@ -108,6 +108,15 @@ function metricValueOn(idx: EventIndex, domain: Domain, metric: string, dateKey:
     .reduce((sum, e) => sum + e.value, 0);
 }
 
+/** Primary + extra metrics of a domain, summed (learning: study + reading). */
+function domainValueOn(idx: EventIndex, domain: Domain, dateKey: string): number {
+  const meta = DOMAIN_META[domain];
+  return [meta.primaryMetric, ...meta.extraMetrics].reduce(
+    (sum, metric) => sum + metricValueOn(idx, domain, metric, dateKey),
+    0
+  );
+}
+
 function sumMetric(idx: EventIndex, domain: Domain, metric: string, from: string, to: string): number {
   let sum = 0;
   for (let d = from; daysBetween(d, to) >= 0; d = addDays(d, 1)) {
@@ -121,6 +130,15 @@ function dailySeries(idx: EventIndex, domain: Domain, metric: string, from: stri
   const out: number[] = [];
   for (let d = from; daysBetween(d, to) >= 0; d = addDays(d, 1)) {
     out.push(metricValueOn(idx, domain, metric, d));
+  }
+  return out;
+}
+
+/** Daily values of ALL of a domain's metrics combined (oldest → newest). */
+function dailySeriesAll(idx: EventIndex, domain: Domain, from: string, to: string): number[] {
+  const out: number[] = [];
+  for (let d = from; daysBetween(d, to) >= 0; d = addDays(d, 1)) {
+    out.push(domainValueOn(idx, domain, d));
   }
   return out;
 }
@@ -170,7 +188,7 @@ export function levelOf(completion: number): Level {
 function completionForDomain(idx: EventIndex, domain: HeatmapDomain, dateKey: string): number {
   const meta = DOMAIN_META[domain];
   if (meta.goalMode === "day") {
-    return Math.min(1, metricValueOn(idx, domain, meta.primaryMetric, dateKey) / meta.dayGoal);
+    return Math.min(1, domainValueOn(idx, domain, dateKey) / meta.dayGoal);
   }
   const total = sumMetric(idx, domain, meta.primaryMetric, addDays(dateKey, -6), dateKey);
   return Math.min(1, total / (meta.weeklyGoal ?? 1));
@@ -231,18 +249,34 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
 
   return domains.map((domain) => {
     const meta = DOMAIN_META[domain];
-    const nowSum = sumMetric(idx, domain, meta.primaryMetric, last30.from, last30.to);
-    const thenSum = sumMetric(idx, domain, meta.primaryMetric, prev30.from, prev30.to);
+    const sumOver = (from: string, to: string) =>
+      [meta.primaryMetric, ...meta.extraMetrics].reduce(
+        (total, metric) => total + sumMetric(idx, domain, metric, from, to),
+        0
+      );
+    const nowSum = sumOver(last30.from, last30.to);
+    const thenSum = sumOver(prev30.from, prev30.to);
     const delta = deltaPctOf(nowSum, thenSum);
 
     let headline: string;
+    let unitLabel = meta.unitLabel;
     switch (domain) {
       case "learning":
         headline = formatDuration(nowSum / 30);
         break;
-      case "english":
-        headline = formatCount(nowSum / 30);
+      case "english": {
+        // A brand-new metric (1 day of data) makes the 30-day average
+        // misleading ("0.3 /day") — show today's real value instead.
+        const avg = nowSum / 30;
+        if (avg < 1) {
+          const todayWords = domainValueOn(idx, domain, today);
+          headline = formatCount(todayWords);
+          unitLabel = "/today";
+        } else {
+          headline = formatCount(avg);
+        }
         break;
+      }
       case "coding":
       case "productivity":
         headline = formatCount((nowSum * 7) / 30);
@@ -252,20 +286,21 @@ export async function getDomainSummaries(): Promise<DomainSummary[]> {
         break;
     }
 
-    const spark = dailySeries(idx, domain, meta.primaryMetric, last30.from, last30.to);
+    // Combined daily series (learning: study + reading on one sparkline).
+    const spark = dailySeriesAll(idx, domain, last30.from, last30.to);
 
     const isHeatmapDomain = HEATMAP_DOMAINS.includes(domain as HeatmapDomain);
     const todayCompletion = isHeatmapDomain
       ? completionForDomain(idx, domain as HeatmapDomain, today)
       : null;
-    const todayValue = metricValueOn(idx, domain, meta.primaryMetric, today);
+    const todayValue = domainValueOn(idx, domain, today);
     const todayValueLabel =
       todayValue > 0 ? formatTodayValue(domain, todayValue) : null;
 
     return {
       domain,
       headline,
-      unitLabel: meta.unitLabel,
+      unitLabel,
       deltaPct: delta,
       trend: trendOf(delta),
       spark,
@@ -287,7 +322,7 @@ export async function getHeatmapData(): Promise<{ gridStart: string; days: Heatm
     for (const domain of HEATMAP_DOMAINS) {
       const completion = completionForDomain(idx, domain, d);
       const meta = DOMAIN_META[domain];
-      const value = metricValueOn(idx, domain, meta.primaryMetric, d);
+      const value = domainValueOn(idx, domain, d);
       const displayValue =
         meta.goalMode === "trailing7"
           ? sumMetric(idx, domain, meta.primaryMetric, addDays(d, -6), d)
@@ -804,21 +839,34 @@ export async function getHeaderStatus(): Promise<HeaderStatus> {
   const prev90 = windowRange(PREV_OFFSETS.prev90, today);
 
   // 90-day deltas over data-bearing domains (the line must come from data).
+  // Combined primary+extra metrics per domain — reading counts as learning.
   let total = 0;
   let n = 0;
+  let top: { label: string; deltaPct: number } | null = null;
   for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
     const meta = DOMAIN_META[domain];
-    const now = sumMetric(idx, domain, meta.primaryMetric, last90.from, last90.to);
-    const then = sumMetric(idx, domain, meta.primaryMetric, prev90.from, prev90.to);
+    const sumAll = (from: string, to: string) =>
+      [meta.primaryMetric, ...meta.extraMetrics].reduce(
+        (sum, metric) => sum + sumMetric(idx, domain, metric, from, to),
+        0
+      );
+    const now = sumAll(last90.from, last90.to);
+    const then = sumAll(prev90.from, prev90.to);
     if (now === 0 && then === 0) continue;
-    total += deltaPctOf(now, then);
+    const delta = deltaPctOf(now, then);
+    total += delta;
     n++;
+    if (!top || Math.abs(delta) > Math.abs(top.deltaPct)) {
+      top = { label: meta.label, deltaPct: delta };
+    }
   }
   const avgDelta = n > 0 ? total / n : 0;
+  const state: HeaderStatus["state"] =
+    avgDelta > 3 ? "ahead" : avgDelta < -3 ? "below" : "steady";
   const line =
-    avgDelta > 3
+    state === "ahead"
       ? "You're ahead of your 90-day self."
-      : avgDelta < -3
+      : state === "below"
         ? "You're below your 90-day baseline."
         : "You're holding steady vs your 90-day self.";
 
@@ -832,7 +880,7 @@ export async function getHeaderStatus(): Promise<HeaderStatus> {
   const greeting =
     hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
 
-  return { greeting, line, dateLabel: formatDateLong(today) };
+  return { greeting, line, dateLabel: formatDateLong(today), state, top };
 }
 
 /** Connector registry + sync status + trailing-30d event counts. */

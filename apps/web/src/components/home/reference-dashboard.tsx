@@ -202,7 +202,17 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
   return (
     <div className="life-dashboard">
       <header className="dashboard-topbar">
-        <div><h1>{locale === "zh" ? "晚上好，" : data.header.greeting}</h1><p>{locale === "zh" ? "继续前进。你已经超过了 90 天前的自己。" : data.header.line}</p></div>
+        <div>
+          <h1>{locale === "zh" ? ({ "Good morning,": "早上好，", "Good afternoon,": "下午好，", "Good evening,": "晚上好，" }[data.header.greeting] ?? data.header.greeting) : data.header.greeting}</h1>
+          <p>{locale === "zh" ? ({ ahead: "你已经超过了 90 天前的自己。", below: "你目前低于 90 天前的基准。", steady: "你与 90 天前的自己基本持平。" }[data.header.state]) : data.header.line}</p>
+          {data.header.top && Math.abs(data.header.top.deltaPct) > 0 && (
+            <p className="mt-1 text-[12px] text-[#8d96a6]">
+              {locale === "zh"
+                ? `${({ Learning: "学习", English: "英语", Coding: "编程", Health: "健康", Productivity: "效率" }[data.header.top.label as "Learning"] ?? data.header.top.label)}近 90 天${data.header.top.deltaPct > 0 ? "提升" : "变化"} ${Math.abs(Math.round(data.header.top.deltaPct))}%，是你最明显的趋势。`
+                : `${data.header.top.label} moved ${data.header.top.deltaPct > 0 ? "+" : ""}${Math.round(data.header.top.deltaPct)}% over 90 days — your clearest trend.`}
+            </p>
+          )}
+        </div>
         <div className="dashboard-date-controls flex items-center gap-4 text-[12px] text-white"><span>{data.header.dateLabel}</span><ChevronLeft className="size-4 text-[#7e8796]" /><ChevronRight className="size-4 text-[#525b69]" /><Sun className="size-[18px] text-[#f0b84b]" /><button onClick={() => setLocale(locale === "en" ? "zh" : "en")} className="language-toggle" aria-label={locale === "en" ? "切换到中文" : "Switch to English"}><span className={locale === "en" ? "active" : ""}>EN</span><span className={locale === "zh" ? "active" : ""}>中</span></button></div>
         <div className="hidden self-stretch py-1 xl:block"><div className="flex items-start justify-end gap-4"><Search className="mt-2 size-5 text-[#d3d8e0]" /><div className="flex items-start gap-3"><span className="size-8 rounded-full bg-[radial-gradient(circle_at_55%_40%,#7e8d86_0_25%,#574934_28%_55%,#202a30_58%)]" /><span className="text-[11px] leading-4 text-[#9098a6]">{locale === "zh" ? <>打造你想要的<br />人生。</> : <>Build the life<br />you want.</>}</span></div></div><div className="mt-3 rounded-[10px] bg-[#121821] px-5 py-4 text-[11px] leading-5 text-[#9ea7b5]">{locale === "zh" ? <>每天进步一点点&nbsp; —<br />终会积少成多。</> : <>A little progress each day&nbsp; —<br />adds up to big results.</>}</div></div>
       </header>

@@ -101,6 +101,10 @@ export interface HeaderStatus {
   /** Data-driven line, e.g. "You're ahead of your 90-day self." */
   line: string;
   dateLabel: string;
+  /** Locale-neutral state — UI translates; never a canned phrase. */
+  state: "ahead" | "below" | "steady";
+  /** The data-bearing domain with the largest 90-day move. */
+  top: { label: string; deltaPct: number } | null;
 }
 
 export interface DataSourceRow {

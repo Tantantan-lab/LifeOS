@@ -34,6 +34,12 @@ export interface DomainMeta {
   label: string;
   /** Primary metric feeding completions and headlines. */
   primaryMetric: string;
+  /**
+   * Secondary metrics that COUNT toward the domain's completion/summary
+   * (learning: reading minutes join study minutes once real history
+   * exists — WeRead has 69 days and is live).
+   */
+  extraMetrics: string[];
   /** Human label of the primary metric. */
   metricLabel: string;
   unitLabel: string;
@@ -51,6 +57,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
   learning: {
     label: "Learning",
     primaryMetric: "learning.study.minutes",
+    extraMetrics: ["learning.reading.minutes"],
     metricLabel: "Study time",
     unitLabel: "/day",
     goalLabel: "120 min/day",
@@ -63,6 +70,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
   english: {
     label: "English",
     primaryMetric: "english.words.reviewed",
+    extraMetrics: [],
     metricLabel: "Words reviewed",
     unitLabel: "/day",
     goalLabel: "40 words/day",
@@ -75,6 +83,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
   coding: {
     label: "Coding",
     primaryMetric: "coding.commits",
+    extraMetrics: [],
     metricLabel: "Commits",
     unitLabel: "/week",
     goalLabel: "10 commits/week",
@@ -87,6 +96,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
   health: {
     label: "Health",
     primaryMetric: "health.sleep.minutes",
+    extraMetrics: [],
     metricLabel: "Sleep",
     unitLabel: "/night",
     goalLabel: "6.5–7.5h band",
@@ -99,6 +109,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
   productivity: {
     label: "Productivity",
     primaryMetric: "productivity.tasks.completed",
+    extraMetrics: [],
     metricLabel: "Tasks completed",
     unitLabel: "/week",
     goalLabel: "15 tasks/week",

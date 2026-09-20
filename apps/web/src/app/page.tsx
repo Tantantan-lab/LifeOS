@@ -6,7 +6,7 @@ import { GoalProgressHero } from "@/components/home/goal-progress-hero";
 import { NextActionCard } from "@/components/home/next-action-card";
 import { DomainRow } from "@/components/home/domain-row";
 import { TodayColumn } from "@/components/home/today-column";
-import { MeVsMeSummary } from "@/components/home/me-vs-me-summary";
+import { MeVsMeExplorer } from "@/components/me-vs-me/me-vs-me-explorer";
 import { GoalsSummary } from "@/components/home/goals-summary";
 import { InsightsPreview } from "@/components/home/insights-preview";
 import { ContributionHeatmap } from "@/components/heatmap/contribution-heatmap";
@@ -79,9 +79,11 @@ export default async function HomePage() {
         <TodayColumn items={today} completion={todayCompletion} />
       </div>
 
-      {/* 4. Me vs Me · Goals · Insights */}
-      <div className="grid gap-5 md:grid-cols-3">
-        <MeVsMeSummary window={meVsMe["30D"]} />
+      {/* 4. Me vs Me — the full explorer, identical to /me-vs-me */}
+      <MeVsMeExplorer windows={meVsMe} />
+
+      {/* 5. Goals · Insights */}
+      <div className="grid gap-5 md:grid-cols-2">
         <GoalsSummary goals={goals} />
         <InsightsPreview insights={insights} />
       </div>

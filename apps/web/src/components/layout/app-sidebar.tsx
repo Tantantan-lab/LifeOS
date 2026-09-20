@@ -40,7 +40,7 @@ function BrandBlock({ locale }: { locale: "en" | "zh" }) {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { locale } = useLocale();
+  const { locale, setLocale } = useLocale();
 
   return (
     <>
@@ -66,6 +66,14 @@ export function AppSidebar() {
             ))}
           </nav>
           <div className="px-4 pb-1 text-[11px] leading-5 text-fg-muted">
+            <button
+              onClick={() => setLocale(locale === "en" ? "zh" : "en")}
+              className="language-toggle mb-3"
+              aria-label={locale === "en" ? "切换到中文" : "Switch to English"}
+            >
+              <span className={locale === "en" ? "active" : ""}>EN</span>
+              <span className={locale === "zh" ? "active" : ""}>中</span>
+            </button>
             <div className="border-l-2 border-[#6572ff] pl-3">{locale === "zh" ? <>不评判。<br />只看证据。</> : <>No judgment.<br />Just evidence.</>}</div>
             <div className="mt-7 flex items-center gap-3"><span className="flex size-7 items-center justify-center rounded-full bg-[var(--dash-surface-hi)]"><UserRound className="size-4" /></span><span>{locale === "zh" ? <>更好的自己，<br />更多的选择。</> : <>A better me,<br />more choices.</>}</span></div>
           </div>

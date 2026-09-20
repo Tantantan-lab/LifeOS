@@ -770,7 +770,7 @@ export async function getNextBestAction(): Promise<NextBestAction | null> {
   const today = todayKey();
   const last30 = windowRange(PREV_OFFSETS.last30, today);
 
-  let best: { row: (typeof GOAL_ROWS)[number]; completion: number } | null = null;
+  let best: { row: (typeof GOAL_ROWS)[number]; completion: number; nowSum: number } | null = null;
   for (const row of GOAL_ROWS) {
     if (row.mode === "band") continue;
     const nowSum = sumMetric(idx, row.domain, row.metric, last30.from, last30.to);
@@ -780,19 +780,26 @@ export async function getNextBestAction(): Promise<NextBestAction | null> {
         ? Math.min(1, (nowSum * 7) / 30 / (row.weeklyGoal ?? 1))
         : Math.min(1, nowSum / 30 / row.dayGoal);
     if (completion >= 1) continue;
-    if (!best || completion < best.completion) best = { row, completion };
+    if (!best || completion < best.completion) best = { row, completion, nowSum };
   }
   if (!best) return null;
 
-  const { row, completion } = best;
+  const { row, completion, nowSum } = best;
   const gapPct = Math.round((1 - completion) * 100);
   const isDuration = row.metric.endsWith(".minutes");
   const extra = isDuration
     ? Math.max(5, Math.round((1 - completion) * row.dayGoal))
-    : Math.max(1, Math.round((1 - completion) * (row.weeklyGoal ?? 0)));
+    : Math.max(1, Math.round((1 - completion) * (row.weeklyGoal ?? row.dayGoal)));
+  // Current 30-day average, for the evidence sentence ("averaged X vs target Y").
+  const avg = nowSum / 30;
+  const unitWord =
+    row.key === "words" ? "words" : row.key === "tasks" ? "tasks" : row.key === "commits" ? "commits" : row.key === "workout" ? "sessions" : "";
+  const currentLabel = isDuration
+    ? formatDuration(avg)
+    : `${formatCount(avg)}${unitWord ? ` ${unitWord}` : ""}`;
   return {
     title: isDuration ? `${row.label} · +${extra} min` : `${row.label} · +${extra} more`,
-    reason: `${row.label} is ${gapPct}% below its target (${row.targetLabel}) over the last 30 days.`,
+    reason: `${row.label} averaged ${currentLabel} over the last 30 days, against a target of ${row.targetLabel}.`,
     domain: row.domain,
     metric: row.metric,
     minutes: isDuration ? extra : 0,
@@ -801,6 +808,7 @@ export async function getNextBestAction(): Promise<NextBestAction | null> {
     targetLabel: row.targetLabel,
     isDuration,
     extra,
+    currentLabel,
   };
 }
 

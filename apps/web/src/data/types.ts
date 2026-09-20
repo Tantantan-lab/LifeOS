@@ -90,6 +90,8 @@ export interface NextBestAction {
   /** true when the suggestion is a duration ("+N min"), false for counts. */
   isDuration: boolean;
   extra: number;
+  /** Formatted 30-day average, e.g. "0.3 words" — for evidence sentences. */
+  currentLabel: string;
 }
 
 export interface InsightTrendRow {

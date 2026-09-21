@@ -6,33 +6,44 @@
 > **No judgment. Just evidence.**
 > 不评价，只提供证据。
 
-LifeOS is not a todo list or a habit tracker. It aggregates your real life data (study, English, fitness, coding, sleep, …) into one unified event stream and answers three questions:
+[![Demo](https://img.shields.io/badge/demo-live-4f46e5?logo=github)](https://tantantan-lab.github.io/LifeOS/)
+[![GitHub Pages](https://img.shields.io/badge/pages-static%20demo-22272e?logo=githubpages)](https://tantantan-lab.github.io/LifeOS/)
 
-1. **What have I done?** — Contribution Heatmap
-2. **How much have I changed?** — Me vs Me
-3. **Where do I go next?** — Goal Gap → Next Best Action
+A personal life-data dashboard that aggregates your real activity — study, English, fitness, coding, sleep — into one evidence stream, and answers three questions:
 
-## Layout
+1. **What have I done?** — Contribution heatmap (365 days, day-value semantics)
+2. **How much have I changed?** — Me vs Me windows (30D / 90D / 1Y / Beginning)
+3. **Where do I go next?** — Goal gap → Next Best Action with a session timer loop
 
-```
-compose.yaml        dev database — ONE postgres:17 container, 127.0.0.1:5432,
-                    data bind-mounted at .data/postgres (sub2api-style)
-apps/web            Next.js 16 + TypeScript + Tailwind v4 + shadcn/ui
-apps/web/scripts    migrate.ts + seed.ts (tsx)
-apps/api            FastAPI (M3)
-packages/ui         Shared design system (M4)
-packages/analytics  Aggregations / trends / gap math (M3)
-packages/connectors GitHub / Anki / Apple Health / Hevy importers (M4)
-database/migrations PostgreSQL DDL
-docs                Architecture / design system / data model
-```
+## Demo
+
+**→ [tantantan-lab.github.io/LifeOS](https://tantantan-lab.github.io/LifeOS/)** (English / 中文, dark / light)
+
+The public demo runs on a **static snapshot of deterministic mock data** — no database, no backend — and badges itself as "Demo data · not real" in the sidebar. Your real data never leaves your machine.
+
+| Home — heatmap, activity cards, goal ring | AI Analysis — TypeSafe-selected insights, en/zh |
+|---|---|
+| ![Home dashboard](docs/screenshots/home-dark.png) | ![AI Analysis](docs/screenshots/insights-analysis.png) |
+
+## Highlights
+
+- **365-day contribution heatmap** — intensity = goal completion capped at 100%; weekly-goal cells measure the day itself (a rest day renders empty)
+- **Five domains, one event stream** — learning / english / coding / health / productivity, merged from official connectors (GitHub, WeRead, Maimemo, TickTick, Xunji) and manual logging
+- **Insights that are selected, not generated** — code renders candidate sentences from your numbers; a TypeSafe System One model (Jev) picks one per section. Numbers can't be hallucinated; judgment words can't appear. Fully bilingual (en/zh)
+- **Goals & readiness** — you vs. your own target (Overseas Engineer benchmark), never a percentile or a ranking
+- **Decision loop** — Next Best Action with evidence ("Why now?"), a session timer, and manual event logging that feeds the loop
+- **Privacy by default** — single-user, localhost-bound Postgres, server-only credentials
+
+## Tech stack
+
+Next.js 16 (TypeScript, Tailwind v4) · FastAPI · plain PostgreSQL (one Docker container, sub2api-style) · TypeSafe (Jev) · headless-Chrome CDP UI test suite
 
 ## Getting started
 
-**Container mode (sub2api-style, one command):**
+**Container mode (one command):**
 
 ```bash
-npm run up          # build + start web + db in Docker (http://localhost:3000)
+npm run up          # build + start web + api + db in Docker (http://localhost:3000)
 npm run seed        # first time: seed owner + 365-day history (idempotent)
 ```
 
@@ -46,37 +57,33 @@ npm run seed        # seed owner + history
 npm run dev         # dev server with hot reload
 ```
 
-## Scripts
+**Useful scripts**
 
 ```bash
-npm run up          # docker compose up -d --build (web + api + db, full stack)
-npm run down        # docker compose down (stop everything, data preserved)
-npm run dev         # dev server on the host (http://localhost:3000)
-npm run build       # production build (data routes are dynamic; DB not needed)
-npm run start       # production server on the host (needs DB running)
-npm run lint        # ESLint
-npm run typecheck   # tsc --noEmit
-npm run db:up       # start the postgres container only (data preserved)
-npm run db:down     # stop the postgres container
-npm run db:ui       # adminer at http://127.0.0.1:8081 (on demand)
-npm run db:migrate  # apply pending migrations
-npm run db:reset    # wipe + recreate + migrate + re-seed (destructive)
-npm run seed        # seed the mock history (idempotent, never touches connector rows)
-npm run api:up      # build + start the api container
-npm run api:logs    # follow api logs
-npm run sync        # sync every connector (needs credentials in apps/api/.env)
-npm run sync:github # sync one connector
-npm run sync:dry    # print what WOULD be written (no DB writes)
-npm run insights    # generate the weekly insight (needs TYPESAFE_API_KEY)
-npm run ticktick:auth  # one-time TickTick OAuth
-npm run test:api    # pytest for the api (fixture-driven, no tokens needed)
+npm run sync            # sync every connector (needs credentials in apps/api/.env)
+npm run insights        # generate the weekly insight (needs TYPESAFE_API_KEY)
+npm run test:api        # pytest for the api (fixture-driven, no tokens needed)
+npm run typecheck       # tsc --noEmit
+npm run db:reset        # wipe + recreate + migrate + re-seed (destructive)
+```
+
+## Layout
+
+```
+compose.yaml        dev database — ONE postgres:17 container, 127.0.0.1:5432,
+                    data bind-mounted at .data/postgres (sub2api-style)
+apps/web            Next.js 16 + TypeScript + Tailwind v4
+apps/web/scripts    migrate.ts + seed.ts + CDP UI suite + static-demo helpers
+apps/api            FastAPI — connector engine + TypeSafe insights
+database/migrations PostgreSQL DDL
+docs                architecture / design system / data model / demo deploy
 ```
 
 ## Status
 
 - **M1 (done)**: UI — Home, Contribution, Me vs Me, Goals + design system.
-- **M2 (done)**: database — one plain Postgres container (sub2api-style): users/events/goals/metrics/data_sources, seeded 365-day history, read path switched to the DB. Privacy = localhost-only binding + server-only credentials.
-- **M3 (done)**: five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick — all official APIs), AI insights pipeline (TypeSafe Choice (Jev), FACT/TREND/GAP/ACTION), real "today". Live syncs pending your credentials in `apps/api/.env`.
-- **M4 (done)**: interaction gaps from the Master UI Prompt — Next Best Action (with reason), Heatmap Day Detail, Dashboard Header, Daily Goal ring, Data Sources page.
-- **M5 (done)**: Decision Interface — NBA main card with Start timer → manual Event → loop re-derivation; Level badge + skill statuses; Insights 4-tab; theme switch (System/Dark/Light, default Dark).
+- **M2 (done)**: database — one plain Postgres container: users/events/goals/metrics/data_sources, seeded 365-day history, read path switched to the DB.
+- **M3 (done)**: five-domain taxonomy, connector engine (GitHub + WeRead + Maimemo + TickTick — official APIs), insights pipeline (analytics summary → TypeSafe Choice (Jev) → FACT/TREND/GAP/ACTION), real "today".
+- **M4 (done)**: interaction gaps — Next Best Action (with reason), Heatmap Day Detail, Dashboard Header, Daily Goal ring, Data Sources page.
+- **M5 (done)**: Decision Interface — NBA main card with Start timer → manual Event → loop re-derivation; Level badge + skill statuses; Insights 4-tab; theme switch.
 - **M6 (next)**: Finance / Nutrition domains, Health page, more connectors.

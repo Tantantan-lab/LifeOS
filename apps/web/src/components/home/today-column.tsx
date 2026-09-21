@@ -1,8 +1,12 @@
+"use client";
+
 import type { TodayItem } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { SectionHeading } from "@/components/primitives/section-heading";
 import { NO_ENTRIES_TODAY } from "@/lib/copy";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, zhValue } from "@/lib/i18n";
 
 /** Compact timeline of everything logged today, newest first. */
 export function TodayColumn({
@@ -13,16 +17,18 @@ export function TodayColumn({
   /** Today's overall goal completion 0..1 (null = no data at all). */
   completion: number | null;
 }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   return (
     <Panel className="flex h-full flex-col">
       <div className="flex items-center justify-between">
-        <SectionHeading title="Today" />
+        <SectionHeading title={t(locale, "Today")} />
         {completion !== null && <DailyGoalRing completion={completion} />}
       </div>
 
       {items.length === 0 ? (
         <div className="flex flex-1 items-center justify-center py-8 text-fg-secondary">
-          {NO_ENTRIES_TODAY}
+          {t(locale, NO_ENTRIES_TODAY)}
         </div>
       ) : (
         <ol className="flex flex-1 flex-col gap-3 overflow-y-auto">
@@ -33,13 +39,17 @@ export function TodayColumn({
               </span>
               <DomainDot domain={item.domain} className="size-1.5" />
               <span className="min-w-0 flex-1 truncate text-sm text-fg-secondary">
-                {item.metricLabel}
+                {t(locale, item.metricLabel)}
               </span>
               <span
                 className="num shrink-0 text-sm text-fg"
-                title={`${item.sourceLabel} · ${item.confidence} confidence`}
+                title={
+                  zh
+                    ? `${item.sourceLabel} · 置信度 ${item.confidence}`
+                    : `${item.sourceLabel} · ${item.confidence} confidence`
+                }
               >
-                {item.valueLabel}
+                {zh ? zhValue(item.valueLabel) : item.valueLabel}
               </span>
             </li>
           ))}
@@ -51,11 +61,12 @@ export function TodayColumn({
 
 /** Ring progress — TODAY's goal completion, never a "life score". */
 function DailyGoalRing({ completion }: { completion: number }) {
+  const { locale } = useLocale();
   const r = 17;
   const c = 2 * Math.PI * r;
   const pct = Math.round(completion * 100);
   return (
-    <div className="relative size-12 shrink-0" title="Daily Goal completion">
+    <div className="relative size-12 shrink-0" title={t(locale, "Daily Goal completion")}>
       <svg viewBox="0 0 40 40" className="size-12 -rotate-90">
         <circle
           cx="20"

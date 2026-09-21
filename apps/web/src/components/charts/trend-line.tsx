@@ -13,6 +13,8 @@ import type { VersusRow } from "@/data/types";
 import { TREND_TEXT_CLASS } from "@/lib/domain-colors";
 import { formatMonthDay } from "@/lib/format";
 import { formatCount } from "@/lib/format";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, monthDayZh } from "@/lib/i18n";
 
 const DURATION_DOMAINS = ["learning", "coding", "health"];
 
@@ -23,9 +25,10 @@ const DURATION_DOMAINS = ["learning", "coding", "health"];
  * ResponsiveContainer inside an unconstrained grid item collapses to 0.
  */
 export function TrendLine({ row }: { row: VersusRow }) {
+  const { locale } = useLocale();
   const isDuration = DURATION_DOMAINS.includes(row.domain);
   const data = row.series.weekly.map((p) => ({
-    label: formatMonthDay(p.label),
+    label: locale === "zh" ? monthDayZh(p.label) : formatMonthDay(p.label),
     value: p.value,
   }));
 
@@ -52,7 +55,7 @@ export function TrendLine({ row }: { row: VersusRow }) {
               tickFormatter={formatValue}
             />
             <Tooltip
-              formatter={(value) => [formatValue(Number(value)), row.label]}
+              formatter={(value) => [formatValue(Number(value)), t(locale, row.label)]}
               contentStyle={{
                 background: "var(--color-surface-2)",
                 border: "1px solid var(--color-border)",

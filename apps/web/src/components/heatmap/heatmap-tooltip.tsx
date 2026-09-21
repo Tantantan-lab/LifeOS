@@ -1,7 +1,12 @@
+"use client";
+
 import type { HeatmapDay } from "@/data/types";
 import type { HeatmapFilter } from "@/components/heatmap/heatmap-filter-tabs";
 import { HEATMAP_META } from "@/data/constants";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t } from "@/lib/i18n";
 import { formatDateLong } from "@/lib/dates";
+import { formatDateLongZh } from "@/lib/format";
 import { noLogged, SOURCE_LABELS } from "@/lib/copy";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +43,8 @@ export function HeatmapTooltip({
   left: number;
   top: number;
 }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   let valueLine: string;
   let goalLine: string;
   let sourceLine: string;
@@ -45,21 +52,24 @@ export function HeatmapTooltip({
   if (domain === "all") {
     const pct = Math.round(day.completionAll * 100);
     valueLine = `${pct}%`;
-    goalLine = "4-domain average";
-    sourceLine = "reading · english · coding · productivity";
+    goalLine = t(locale, "4-domain average");
+    sourceLine = t(locale, "reading · english · coding · productivity");
   } else {
     const meta = HEATMAP_META[domain];
     const cell = day[domain];
     const pct = Math.round(cell.completion * 100);
+    const label = t(locale, LABEL[domain]);
+    const goalLabel = t(locale, meta.goalLabel);
+    const weekSuffix = t(locale, " this week");
     if (cell.value === 0) {
-      valueLine = noLogged(LABEL[domain]);
-      goalLine = `Goal: ${meta.goalLabel}`;
+      valueLine = zh ? `无${label}记录` : noLogged(label);
+      goalLine = zh ? `目标：${goalLabel}` : `Goal: ${meta.goalLabel}`;
     } else {
-      valueLine = `${cell.displayValue} ${UNIT[domain]}${meta.goalMode === "trailing7" ? " this week" : ""}`;
-      goalLine = `${pct}% of ${meta.goalLabel}`;
+      valueLine = `${cell.displayValue} ${t(locale, UNIT[domain])}${meta.goalMode === "trailing7" ? weekSuffix : ""}`;
+      goalLine = zh ? `${goalLabel}的 ${pct}%` : `${pct}% of ${meta.goalLabel}`;
     }
     const source = { learning: "timer", english: "anki", coding: "demo", productivity: "demo", fitness: "xunji" }[domain] as "timer";
-    sourceLine = `${SOURCE_LABELS[source]} · 0.95 confidence`;
+    sourceLine = `${SOURCE_LABELS[source]}${t(locale, " · 0.95 confidence")}`;
   }
 
   return (
@@ -68,7 +78,9 @@ export function HeatmapTooltip({
       className="pointer-events-none absolute z-20 w-48 -translate-x-1/2 -translate-y-full rounded-[10px] border border-border bg-surface-2 p-3"
       style={{ left, top }}
     >
-      <div className="text-micro text-fg-secondary">{formatDateLong(day.date)}</div>
+      <div className="text-micro text-fg-secondary">
+        {zh ? formatDateLongZh(day.date) : formatDateLong(day.date)}
+      </div>
       <div className={cn("num mt-1 text-display leading-tight", domain === "all" ? "text-fg" : "text-fg")}>
         {valueLine}
       </div>

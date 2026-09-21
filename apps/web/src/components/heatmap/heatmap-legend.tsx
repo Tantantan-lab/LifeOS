@@ -1,4 +1,8 @@
+"use client";
+
 import { HEATMAP_CAPTION, HEATMAP_LESS, HEATMAP_MORE } from "@/lib/copy";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t } from "@/lib/i18n";
 import type { HeatmapFilter } from "@/components/heatmap/heatmap-filter-tabs";
 
 /**
@@ -7,9 +11,10 @@ import type { HeatmapFilter } from "@/components/heatmap/heatmap-filter-tabs";
  * Squares reuse the hm-cell ramp by carrying data-domain + data-level.
  */
 export function HeatmapLegend({ domain }: { domain: HeatmapFilter }) {
+  const { locale } = useLocale();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="text-micro text-fg-muted">{HEATMAP_LESS}</span>
+      <span className="text-micro text-fg-muted">{t(locale, HEATMAP_LESS)}</span>
       <div
         className="hm-grid inline-flex items-center gap-[3px]"
         data-domain={domain}
@@ -23,8 +28,8 @@ export function HeatmapLegend({ domain }: { domain: HeatmapFilter }) {
           />
         ))}
       </div>
-      <span className="text-micro text-fg-muted">{HEATMAP_MORE}</span>
-      <span className="text-micro text-fg-muted">{HEATMAP_CAPTION}</span>
+      <span className="text-micro text-fg-muted">{t(locale, HEATMAP_MORE)}</span>
+      <span className="text-micro text-fg-muted">{t(locale, HEATMAP_CAPTION)}</span>
     </div>
   );
 }

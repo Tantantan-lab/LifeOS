@@ -5,6 +5,8 @@ import { DomainChip } from "@/components/primitives/domain-chip";
 import { MetricDelta } from "@/components/primitives/metric-delta";
 import { Sparkline } from "@/components/primitives/sparkline";
 import { TREND_TEXT_CLASS } from "@/lib/domain-colors";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, zhValue } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** THEN → NOW comparison rows; clicking a row drives the detail chart. */
@@ -17,15 +19,16 @@ export function VersusTable({
   selected: Domain;
   onSelect: (domain: Domain) => void;
 }) {
+  const { locale } = useLocale();
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[560px]">
         <div className="grid grid-cols-[1.3fr_0.9fr_0.9fr_1.15fr_84px] gap-3 px-3 pb-2 text-micro uppercase tracking-[0.1em] text-fg-muted">
-          <span>Domain</span>
-          <span>Then</span>
-          <span>Now</span>
-          <span>Change</span>
-          <span className="text-right">Trend</span>
+          <span>{t(locale, "Domain")}</span>
+          <span>{t(locale, "Then")}</span>
+          <span>{t(locale, "Now")}</span>
+          <span>{t(locale, "Change")}</span>
+          <span className="text-right">{t(locale, "Trend")}</span>
         </div>
         <div className="space-y-1">
           {rows.map((row) => (
@@ -43,15 +46,15 @@ export function VersusTable({
             >
               <DomainChip
                 domain={row.domain}
-                label={row.label}
+                label={t(locale, row.label)}
               />
               <span className="num text-display font-medium text-fg-secondary">
-                {row.thenLabel}
-                <span className="ml-1 text-micro text-fg-muted">{row.unitLabel}</span>
+                {locale === "zh" ? zhValue(row.thenLabel) : row.thenLabel}
+                <span className="ml-1 text-micro text-fg-muted">{t(locale, row.unitLabel)}</span>
               </span>
               <span className="num text-display font-medium text-fg">
-                {row.nowLabel}
-                <span className="ml-1 text-micro text-fg-muted">{row.unitLabel}</span>
+                {locale === "zh" ? zhValue(row.nowLabel) : row.nowLabel}
+                <span className="ml-1 text-micro text-fg-muted">{t(locale, row.unitLabel)}</span>
               </span>
               <MetricDelta
                 deltaPct={row.deltaPct}

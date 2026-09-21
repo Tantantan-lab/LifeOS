@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { InsightsExplorer } from "@/components/insights/insights-explorer";
+import { PeriodToggle } from "@/components/insights/period-toggle";
 import { getGaps, getInsight, getInsightTrends } from "@/data/selectors";
 
 export const metadata: Metadata = { title: "Insights" };
@@ -31,12 +31,7 @@ export default async function InsightsPage({
         title="Insights"
         description="Evidence-backed observations — never judgments."
       >
-        <Link
-          href={`/insights?period=${period === "week" ? "month" : "week"}&tab=${tab}`}
-          className="rounded-full border border-border px-3 py-1 text-sm text-fg-secondary transition-colors hover:text-fg"
-        >
-          {period === "week" ? "Monthly" : "Weekly"}
-        </Link>
+        <PeriodToggle period={period} tab={tab} />
       </PageHeader>
 
       <InsightsExplorer

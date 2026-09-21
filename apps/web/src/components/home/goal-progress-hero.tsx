@@ -1,13 +1,19 @@
+"use client";
+
 import type { GoalProgress } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { ProgressBar } from "@/components/primitives/progress-bar";
 import { GOAL_PROGRESS_EYEBROW, GOAL_PROGRESS_NEVER_SCORE, GOAL_PROGRESS_READY } from "@/lib/copy";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, tStatus } from "@/lib/i18n";
 
 /**
  * "How am I doing?" — the hero. Deliberately framed as readiness against
  * a target ("72% ready"), NEVER as a "Life Score".
  */
 export function GoalProgressHero({ progress }: { progress: GoalProgress }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   return (
     <Panel>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -17,7 +23,7 @@ export function GoalProgressHero({ progress }: { progress: GoalProgress }) {
               {GOAL_PROGRESS_EYEBROW}
             </span>
             <span className="rounded-full border border-border px-2 py-0.5 text-micro text-fg-secondary">
-              Level {progress.level}
+              {zh ? `等级 ${progress.level}` : `Level ${progress.level}`}
             </span>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
@@ -25,11 +31,11 @@ export function GoalProgressHero({ progress }: { progress: GoalProgress }) {
               {progress.overall === null ? "—" : progress.overall}
             </span>
             <span className="text-h1 text-fg-secondary">%</span>
-            <span className="text-h2 text-fg-secondary">{GOAL_PROGRESS_READY}</span>
+            <span className="text-h2 text-fg-secondary">{t(locale, GOAL_PROGRESS_READY)}</span>
           </div>
           <ProgressBar value={(progress.overall ?? 0) / 100} className="mt-4 max-w-xs" />
           <div className="mt-3 text-micro text-fg-muted">
-            {progress.updatedLabel} · {progress.evidenceDays} days of evidence
+            {progress.updatedLabel} · {zh ? `${progress.evidenceDays} ${t(locale, "days of evidence")}` : `${progress.evidenceDays} days of evidence`}
           </div>
         </div>
 
@@ -47,12 +53,12 @@ export function GoalProgressHero({ progress }: { progress: GoalProgress }) {
                 className="w-20 shrink-0 truncate text-right text-micro text-fg-muted"
                 title={skill.evidence}
               >
-                {skill.status}
+                {tStatus(locale, skill.status)}
               </span>
             </div>
           ))}
           <div className="pt-1 text-micro text-fg-muted">
-            {GOAL_PROGRESS_NEVER_SCORE}
+            {t(locale, GOAL_PROGRESS_NEVER_SCORE)}
           </div>
         </div>
       </div>

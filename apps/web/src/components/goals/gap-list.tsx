@@ -1,13 +1,27 @@
+"use client";
+
 import type { GapItem } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t } from "@/lib/i18n";
+
+/** zh for the selector-composed note strings (numbers stay first). */
+function zhNote(locale: "en" | "zh", note: string): string {
+  if (locale !== "zh") return note;
+  return note
+    .replace(/^~(\d+) weeks at your current pace$/, "按当前速度约 $1 周")
+    .replace(/^(.+) at your current pace$/, "按当前速度$1");
+}
 
 /** Ranked gaps with evidence-based pace estimates — where to go next. */
 export function GapList({ gaps }: { gaps: GapItem[] }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   return (
     <Panel>
-      <h2 className="text-h2 font-semibold text-fg">Gap</h2>
+      <h2 className="text-h2 font-semibold text-fg">{t(locale, "Gap")}</h2>
       <p className="mt-1 text-sm text-fg-secondary">
-        What to close next, ordered by distance to target.
+        {t(locale, "What to close next, ordered by distance to target.")}
       </p>
 
       <ol className="mt-4 space-y-2">
@@ -23,10 +37,12 @@ export function GapList({ gaps }: { gaps: GapItem[] }) {
               {gap.skill}
             </span>
             <span className="num shrink-0 rounded-full border border-border px-2.5 py-0.5 text-meta text-fg-secondary">
-              {gap.gapLabel}
+              {zh
+                ? gap.gapLabel.replace(/^Not assessed$/, t(locale, "Not assessed")).replace(/(\d+) pts$/, "$1 分")
+                : gap.gapLabel}
             </span>
             <span className="hidden shrink-0 text-sm text-fg-muted md:block">
-              {gap.note}
+              {zh ? t(locale, gap.note) || zhNote(locale, gap.note) : gap.note}
             </span>
           </li>
         ))}

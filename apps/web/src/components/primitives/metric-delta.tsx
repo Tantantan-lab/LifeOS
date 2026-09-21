@@ -1,6 +1,10 @@
+"use client";
+
 import { TREND_TEXT_CLASS } from "@/lib/domain-colors";
 import { formatDelta } from "@/lib/format";
 import { BELOW_BASELINE, TREND_LABELS } from "@/lib/copy";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t } from "@/lib/i18n";
 import type { Trend } from "@/data/types";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +23,7 @@ export function MetricDelta({
   withWord?: boolean;
   className?: string;
 }) {
+  const { locale } = useLocale();
   return (
     <span
       className={cn(
@@ -31,11 +36,11 @@ export function MetricDelta({
       {withWord && (
         <>
           <span className="text-fg-muted">·</span>
-          <span className="text-fg-secondary">{TREND_LABELS[trend]}</span>
+          <span className="text-fg-secondary">{t(locale, TREND_LABELS[trend])}</span>
         </>
       )}
       {trend === "declining" && (
-        <span className="text-micro text-fg-muted">{BELOW_BASELINE}</span>
+        <span className="text-micro text-fg-muted">{t(locale, BELOW_BASELINE)}</span>
       )}
     </span>
   );

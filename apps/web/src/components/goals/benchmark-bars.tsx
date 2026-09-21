@@ -1,6 +1,10 @@
+"use client";
+
 import type { SkillBenchmark } from "@/data/types";
 import { TARGET_LABEL } from "@/data/constants";
 import { Panel } from "@/components/primitives/panel";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, tStatus } from "@/lib/i18n";
 
 /**
  * YOU vs TARGET — benchmark position, not ranking. Language is strictly
@@ -8,14 +12,16 @@ import { Panel } from "@/components/primitives/panel";
  * people": other people's data only sets the coordinates.
  */
 export function BenchmarkBars({ skills }: { skills: SkillBenchmark[] }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   const scaleMax = 100;
   return (
     <Panel>
       <h2 className="text-h2 font-semibold text-fg">
-        Benchmark · {TARGET_LABEL}
+        {zh ? `${t(locale, "Benchmark ·")} 海外工程师` : `Benchmark · ${TARGET_LABEL}`}
       </h2>
       <p className="mt-1 text-sm text-fg-secondary">
-        Your position against the target role. Others only set the coordinates.
+        {t(locale, "Your position against the target role. Others only set the coordinates.")}
       </p>
 
       <div className="mt-5 space-y-4">
@@ -26,7 +32,7 @@ export function BenchmarkBars({ skills }: { skills: SkillBenchmark[] }) {
               <span className="w-24 shrink-0 truncate text-sm text-fg-secondary">
                 {skill.skill}
                 <span className="block truncate text-micro text-fg-muted">
-                  {skill.status}
+                  {tStatus(locale, skill.status)}
                 </span>
               </span>
               <div className="relative h-2.5 min-w-0 flex-1 rounded-full bg-surface-2">
@@ -42,12 +48,21 @@ export function BenchmarkBars({ skills }: { skills: SkillBenchmark[] }) {
                 />
               </div>
               <span className="num w-52 shrink-0 text-right text-meta text-fg-muted">
-                You {skill.score ?? "—"} · Target {skill.target} ·{" "}
-                {skill.gap === null
-                  ? "Not assessed"
-                  : skill.gap === 0
-                    ? "Met"
-                    : `Gap ${skill.gap} pts`}
+                {zh
+                  ? `你 ${skill.score ?? "—"} · 目标 ${skill.target} · ${
+                      skill.gap === null
+                        ? t(locale, "Not assessed")
+                        : skill.gap === 0
+                          ? t(locale, "Met")
+                          : `差距 ${skill.gap} 分`
+                    }`
+                  : `You ${skill.score ?? "—"} · Target ${skill.target} · ${
+                      skill.gap === null
+                        ? "Not assessed"
+                        : skill.gap === 0
+                          ? "Met"
+                          : `Gap ${skill.gap} pts`
+                    }`}
               </span>
             </div>
           );

@@ -99,6 +99,7 @@ async function main() {
     ["NBA card present", `document.body.innerText.toUpperCase().includes("NEXT BEST ACTION")`],
     ["timer start/cancel", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return true; btns[0].click(); await new Promise(r => setTimeout(r, 1500)); const running = document.body.innerText.includes("Complete & log"); const cancel = document.querySelector('[aria-label="Cancel session"]'); if (cancel) cancel.click(); return running; })()`],
     ["timer complete writes an event", `(async () => { const btns = Array.from(document.querySelectorAll("button")).filter(b => b.innerText.includes("Start")); if (!btns.length) return true; btns[0].click(); await new Promise(r => setTimeout(r, 2500)); const complete = Array.from(document.querySelectorAll("button")).find(b => b.innerText.includes("Complete & log")); if (!complete) return false; const before = document.body.innerText; complete.click(); await new Promise(r => setTimeout(r, 2500)); return document.body.innerText !== before; })()`],
+    ["zh mode: today page", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); const ok = document.body.innerText.includes('下一步行动') && document.body.innerText.includes('为什么现在？') && document.body.innerText.includes('今天'); toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
 
   // ---------- Contribution ----------
@@ -113,17 +114,20 @@ async function main() {
     ["click cell opens Day Detail", `(async () => { const cell = document.querySelector('button.hm-cell'); cell.click(); await new Promise(r => setTimeout(r, 300)); const dlg = document.querySelector('[role="dialog"]'); const ok = dlg && document.body.innerText.includes("Daily Goal:"); const close = document.querySelector('[aria-label="Close day detail"]'); if (close) close.click(); return ok; })()`],
     ["day detail shows workout sessions + streak", `(async () => { const cell = document.querySelector('button.hm-cell[data-date="2026-09-19"]'); if (!cell) return false; cell.click(); await new Promise(r => setTimeout(r, 400)); const dlg = document.querySelector('[role="dialog"]'); const text = dlg ? dlg.innerText : ''; const ok = text.includes('Workouts') && text.includes('Streak through this day'); const close = dlg?.querySelector('[aria-label="Close day detail"]'); if (close) close.click(); return ok; })()`],
     ["learning facet reads Reading", `(async () => { const tabs = document.querySelectorAll('[role="tab"]'); const labels = Array.from(tabs).map(t => t.textContent.trim()); return labels.includes('Reading') && !labels.includes('Learning'); })()`],
+    ["zh mode: contribution page", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); let text = document.body.innerText; let ok = text.includes('贡献记录') && text.includes('活跃天数') && text.includes('按领域') && text.includes('强度如何计算'); const cell = document.querySelector('button.hm-cell[data-date="2026-09-19"]'); if (cell) { cell.click(); await new Promise(r => setTimeout(r, 400)); const dlg = document.querySelector('[role="dialog"]'); const dtext = dlg ? dlg.innerText : ''; ok = ok && dtext.includes('当日目标') && dtext.includes('截至当日的连续天数'); const close = dlg?.querySelector('[aria-label="关闭当日详情"]'); if (close) close.click(); } toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
 
   // ---------- Data Sources ----------
   await checkPage("/data-sources", [
     ["connector cards render", `document.body.innerText.includes("GitHub") && document.body.innerText.includes("WeRead") && document.body.innerText.includes("Maimemo") && document.body.innerText.includes("TickTick")`],
     ["sync status lines", `document.body.innerText.includes("Last sync:") && (document.body.innerText.includes("Connected") || document.body.innerText.includes("Disconnected"))`],
+    ["zh mode: data sources", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); const text = document.body.innerText; const ok = text.includes('数据源') && text.includes('连接器') && (text.includes('已连接') || text.includes('未连接')) && text.includes('上次同步'); toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
 
   // ---------- Insights tabs ----------
   await checkPage("/insights?tab=trends", [
     ["trends tab renders table", `document.body.innerText.toUpperCase().includes("90 DAYS") && document.body.innerText.toUpperCase().includes("DOMAIN")`],
+    ["zh mode: insights", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); const text = document.body.innerText; const ok = text.includes('洞察') && text.includes('概览') && text.includes('领域') && text.includes('数据'); toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
   await checkPage("/insights?tab=gaps", [
     ["gaps tab renders ranking", `document.body.innerText.includes("Kubernetes") && document.body.innerText.includes("Cloud")`],
@@ -135,6 +139,7 @@ async function main() {
     ["versus rows present", `document.querySelectorAll("main button[aria-pressed]").length >= 1`],
     ["window switch updates numbers", `(async () => { const before = document.body.innerText; const tabs = document.querySelectorAll('[role="tab"]'); tabs[0].click(); await new Promise(r => setTimeout(r, 400)); const after = document.body.innerText; return before !== after && after.includes("NOW:") && after.includes("THEN:"); })()`],
     ["recharts svg rendered", `document.querySelectorAll(".recharts-surface").length >= 1`],
+    ["zh mode: me vs me", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); const text = document.body.innerText; const ok = text.includes('今昔对比') && text.includes('领域') && text.includes('此前') && text.includes('现在'); toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
 
   // ---------- Goals ----------
@@ -142,6 +147,7 @@ async function main() {
     ["gap order: Kubernetes before English", `(() => { const t = document.body.innerText; const k = t.indexOf("Kubernetes"); const e = t.indexOf("English"); return k > -1 && e > -1 && k < e; })()`],
     ["benchmark shows You/Target lines", `document.body.innerText.includes("Target") && document.body.innerText.includes("You")`],
     ["no percentile ranking", `!document.body.innerText.match(/beat|top \d+%|percentile/i)`],
+    ["zh mode: goals", `(async () => { const toggle = document.querySelector('.language-toggle'); if (!toggle) return false; toggle.click(); await new Promise(r => setTimeout(r, 400)); const text = document.body.innerText; const ok = text.includes('目标') && text.includes('差距') && text.includes('你') && text.includes('海外工程师'); toggle.click(); await new Promise(r => setTimeout(r, 400)); return ok; })()`],
   ]);
 
   chrome.kill();

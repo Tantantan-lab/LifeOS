@@ -7,7 +7,24 @@ import type { NextBestAction } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { logSession } from "@/app/actions/log-session";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { t, zhValue } from "@/lib/i18n";
 import { formatPct } from "@/lib/format";
+
+/** zh for the selector-composed title/reason sentences. */
+function zhTitle(title: string, locale: "en" | "zh"): string {
+  if (locale !== "zh") return title;
+  return title
+    .replace(/^(.*) · \+(\d+) min$/, "$1 · +$2 分钟")
+    .replace(/^(.*) · \+(\d+) more$/, "$1 · 再+$2");
+}
+
+function zhReason(reason: string, locale: "en" | "zh"): string {
+  if (locale !== "zh") return reason;
+  const m = reason.match(/^(.+) averaged (.+) over the last 30 days, against a target of (.+)\.$/);
+  if (m) return `${m[1]} 近 30 天平均 ${zhValue(m[2])}，目标为 ${m[3]}。`;
+  return reason;
+}
 
 /**
  * The Decision Interface — LifeOS is data → decision → action → new data,
@@ -16,6 +33,8 @@ import { formatPct } from "@/lib/format";
  * completing it writes a manual Event and re-derives the recommendation.
  */
 export function NextActionCard({ action }: { action: NextBestAction }) {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   const router = useRouter();
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // seconds
@@ -54,15 +73,17 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
           <div className="flex items-center gap-2">
             <DomainDot domain={action.domain} />
             <span className="text-micro uppercase tracking-[0.14em] text-fg-muted">
-              Next Best Action
+              {t(locale, "Next Best Action")}
             </span>
           </div>
           <div className="num mt-1 text-display font-medium leading-tight text-fg">
-            {action.title}
+            {zh
+              ? `${t(locale, action.label)}${zhTitle(action.title.replace(action.label, ""), locale)}`
+              : action.title}
           </div>
           <div className="mt-2 max-w-xl text-sm text-fg-secondary">
-            <span className="text-fg-muted">Why now? </span>
-            {action.reason}
+            <span className="text-fg-muted">{zh ? "为什么现在？" : "Why now? "}</span>
+            {zhReason(action.reason, locale)}
           </div>
         </div>
 
@@ -90,7 +111,7 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
                   className="inline-flex items-center gap-2 rounded-[10px] bg-brand-strong px-4 py-2 text-sm font-medium text-fg transition-colors hover:opacity-90 disabled:opacity-60"
                 >
                   <Check className="size-4" />
-                  {saving ? "Logging…" : "Complete & log"}
+                  {saving ? t(locale, "Logging…") : t(locale, "Complete & log")}
                 </button>
                 <button
                   type="button"
@@ -99,7 +120,7 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
                     setElapsed(0);
                   }}
                   className="rounded-[10px] border border-border p-2 text-fg-muted transition-colors hover:text-fg"
-                  aria-label="Cancel session"
+                  aria-label={t(locale, "Cancel session")}
                 >
                   <Square className="size-4" />
                 </button>
@@ -111,7 +132,7 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
                 className="inline-flex items-center gap-2 rounded-[10px] bg-brand-strong px-5 py-2.5 text-sm font-medium text-fg transition-colors hover:opacity-90"
               >
                 <Play className="size-4" />
-                Start {action.minutes}-minute session
+                {zh ? `开始 ${action.minutes} 分钟计时` : `Start ${action.minutes}-minute session`}
               </button>
             )}
           </div>
@@ -120,8 +141,9 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
 
       {running && (
         <div className="mt-3 border-t border-border pt-2 text-micro text-fg-muted">
-          Timer running — finish naturally or complete early; any logged
-          minutes count. {formatPct(ringPct)} of the suggested session.
+          {zh
+            ? `计时中——自然结束或提前完成均可；已记录的分钟数都算数。建议时段的 ${formatPct(ringPct)}。`
+            : `Timer running — finish naturally or complete early; any logged minutes count. ${formatPct(ringPct)} of the suggested session.`}
         </div>
       )}
     </Panel>

@@ -844,7 +844,10 @@ export async function getTodaySnapshot(): Promise<TodayItem[]> {
   return [...merged.values()]
     .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
     .map((e) => ({
-      time: formatTime(e.timestamp),
+      // Connector rows are daily aggregates stamped at end-of-day 23:00 —
+      // a synthetic clock, not the real activity time. Showing "23:00"
+      // would invent a fact the source never reported.
+      time: e.event_id.startsWith("conn:") ? "—" : formatTime(e.timestamp),
       domain: e.domain,
       metricLabel: METRIC_LABELS[e.metric]?.(e) ?? e.metric,
       valueLabel: METRIC_VALUE_LABELS[e.metric]?.(e.value, e) ?? `${e.value} ${e.unit}`,

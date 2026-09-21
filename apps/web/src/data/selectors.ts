@@ -424,6 +424,25 @@ export async function getHeatmapData(): Promise<{
     const yearEnd = `${year}-12-31`;
     const days: HeatmapDay[] = [];
     for (let d = yearStart; daysBetween(d, yearEnd) >= 0; d = addDays(d, 1)) {
+      // Future days render as empty cells — trailing-7 windows would
+      // otherwise leak real history into days that haven't happened yet.
+      // daysBetween(a, b) = b − a, so future is > 0.
+      if (daysBetween(today, d) > 0) {
+        const empty: HeatmapDayCell = { completion: 0, level: 0, value: 0, displayValue: 0 };
+        days.push({
+          date: d,
+          completionAll: 0,
+          levelAll: 0,
+          learning: empty,
+          english: empty,
+          coding: empty,
+          productivity: empty,
+          fitness: empty,
+          workouts: [],
+          streak: 0,
+        });
+        continue;
+      }
       const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
       for (const domain of HEATMAP_DOMAINS) {
         const completion = completionForDomain(idx, domain, d);

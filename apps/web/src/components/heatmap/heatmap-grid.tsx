@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const FILTER_LABEL: Record<HeatmapFilter, string> = {
   all: "Overall",
-  learning: "Learning",
+  learning: "Reading",
   english: "English",
   coding: "Coding",
   productivity: "Productivity",

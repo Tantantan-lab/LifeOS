@@ -1,6 +1,6 @@
 "use client";
 
-import { HEATMAP_DOMAINS } from "@/data/constants";
+import { HEATMAP_DOMAINS, HEATMAP_META } from "@/data/constants";
 import type { HeatmapDomain } from "@/data/types";
 import { SegmentedControl } from "@/components/primitives/segmented-control";
 
@@ -10,7 +10,8 @@ export const HEATMAP_FILTER_OPTIONS: { value: HeatmapFilter; label: string }[] =
   { value: "all", label: "All" },
   ...HEATMAP_DOMAINS.map((d) => ({
     value: d as HeatmapFilter,
-    label: d.charAt(0).toUpperCase() + d.slice(1),
+    // facet labels live in HEATMAP_META (learning facet reads "Reading")
+    label: HEATMAP_META[d].label,
   })),
 ];
 

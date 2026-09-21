@@ -4,7 +4,7 @@ import { HEATMAP_DOMAINS, HEATMAP_META } from "@/data/constants";
 import { DomainDot } from "@/components/primitives/domain-chip";
 import { formatDateLong } from "@/lib/dates";
 import { noLogged } from "@/lib/copy";
-import { formatPct } from "@/lib/format";
+import { formatCount, formatDuration, formatPct } from "@/lib/format";
 
 /**
  * Click-a-day breakdown: what happened that day, per heatmap domain,
@@ -67,6 +67,53 @@ export function HeatmapDayDetail({
             </div>
           );
         })}
+      </div>
+
+      {day.workouts.length > 0 && (
+        <div className="mt-3 rounded-[8px] border border-border bg-surface-1 p-3">
+          <div className="flex items-center gap-2">
+            <DomainDot domain="fitness" />
+            <span className="text-sm font-medium text-fg">Workouts</span>
+            <span className="num ml-auto text-micro text-fg-muted">
+              {day.workouts.length} session{day.workouts.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          {day.workouts.map((session, i) => (
+            <div key={i} className="mt-2 border-t border-border pt-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate text-sm text-fg">{session.title}</span>
+                <span className="num shrink-0 text-micro text-fg-muted">
+                  {[
+                    session.minutes != null ? formatDuration(session.minutes) : null,
+                    session.kcal != null ? `${session.kcal} kcal` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </div>
+              {session.movements.length > 0 && (
+                <div className="mt-1 text-micro text-fg-muted">
+                  {session.movements.join(" · ")}
+                </div>
+              )}
+              {session.topWeights.length > 0 && (
+                <div className="mt-1 text-micro text-fg-muted">
+                  Top weights:{" "}
+                  {session.topWeights
+                    .map((w) => `${w.name} ${formatCount(w.weight)}${w.unit ?? ""}`)
+                    .join(" · ")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-micro text-fg-muted">
+        <span>Streak through this day</span>
+        <span className="num text-fg-secondary">
+          {day.streak} {day.streak === 1 ? "day" : "days"}
+        </span>
       </div>
     </div>
   );

@@ -272,7 +272,9 @@ def test_xunji_day_mapping(monkeypatch):
     minutes = [p for p in points if p.metric == "health.workout.minutes"]
     assert len(sessions) == 1
     assert sessions[0].metadata["title"] == "传统力量训练"
-    assert sessions[0].metadata["top_weights"] == [{"name": "BenchPress", "weight": 70.0}]
+    assert sessions[0].metadata["top_weights"] == [
+        {"name": "BenchPress", "weight": 70.0, "unit": "kg"}
+    ]
     assert len(minutes) == 1
     assert minutes[0].value == 60
     assert minutes[0].source == "xunji"
@@ -281,3 +283,60 @@ def test_xunji_day_mapping(monkeypatch):
     assert url == "https://trains.xunjiapp.cn/api_trains_for_llm_v2"
     assert kw["json"]["datestr"] == "2026-04-02"
     assert kw["json"]["include_full_data"] is False
+
+
+# ---------------------------------------------------------------- longbridge
+
+
+def test_longbridge_daily_pnl(monkeypatch):
+    import app.connectors.longbridge as lb
+
+    calls: list[list[str]] = []
+
+    async def fake_run_json(args):
+        calls.append(args)
+        if "--start" not in args:
+            # account-start discovery call (no dates)
+            return {"start_date": "2025-11-25", "sum_profit": "64295.73"}
+        day = args[args.index("--start") + 1]
+        return {
+            "2025-11-24": {"sum_profit": "0", "start_date": "2025-11-23", "end_date": "2025-11-24"},
+            "2025-11-25": {
+                "sum_profit": "7960.80", "ending_asset_value": "166633.12",
+                "currency": "USD", "start_date": "2025-11-24", "end_date": "2025-11-25",
+            },
+            "2025-11-26": {"sum_profit": "-123.45", "ending_asset_value": "166509.67"},
+        }[day]
+
+    monkeypatch.setattr(lb, "_run_json", fake_run_json)
+    monkeypatch.setattr(settings, "longbridge_bin", "longbridge")
+
+    points = _run(lb.LongbridgeConnector().fetch(date(2025, 11, 24), date(2025, 11, 26)))
+
+    # 11-24 is before the account's first record — skipped, not zeroed
+    assert [p.local_date.isoformat() for p in points] == ["2025-11-25", "2025-11-26"]
+    assert all(p.metric == "finance.pnl" for p in points)
+    assert all(p.domain == "finance" for p in points)
+    assert all(p.source == "longbridge" for p in points)
+    assert all(p.unit == "usd" for p in points)
+
+    gain, loss = points
+    assert gain.value == 7960.80
+    assert gain.metadata["ending_asset"] == 166633.12
+    assert gain.metadata["window_start"] == "2025-11-24"
+    assert loss.value == -123.45
+
+    # one discovery call + one per day
+    assert len(calls) == 3
+    assert calls[1][1:3] == ["--start", "2025-11-25"]
+
+
+def test_longbridge_cli_failure_raises(monkeypatch):
+    import app.connectors.longbridge as lb
+
+    async def broken(args):
+        raise ValueError("longbridge CLI exited 1: token rejected")
+
+    monkeypatch.setattr(lb, "_run_json", broken)
+    with pytest.raises(ValueError, match="token rejected"):
+        _run(lb.LongbridgeConnector().fetch(date(2026, 9, 1), date(2026, 9, 2)))

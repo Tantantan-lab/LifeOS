@@ -144,7 +144,8 @@ export const HEATMAP_META: Record<
   HeatmapDomain,
   { label: string; goalLabel: string; goalMode: "day" | "trailing7"; unit: string }
 > = {
-  learning: { label: "Learning", goalLabel: "120 min/day", goalMode: "day", unit: "min" },
+  // The facet reads "Reading": WeRead is the learning evidence (real data).
+  learning: { label: "Reading", goalLabel: "120 min/day", goalMode: "day", unit: "min" },
   english: { label: "English", goalLabel: "40 words/day", goalMode: "day", unit: "words" },
   coding: { label: "Coding", goalLabel: "10 commits/week", goalMode: "trailing7", unit: "commits" },
   productivity: { label: "Productivity", goalLabel: "15 tasks/week", goalMode: "trailing7", unit: "tasks" },

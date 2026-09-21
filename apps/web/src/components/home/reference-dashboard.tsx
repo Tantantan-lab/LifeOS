@@ -14,7 +14,7 @@ import type {
 import { useLocale } from "@/components/i18n/locale-provider";
 import { buildGrid } from "@/components/heatmap/heatmap-geometry";
 import { formatDateLong } from "@/lib/dates";
-import { formatDateLongZh } from "@/lib/format";
+import { formatCount, formatDateLongZh, formatDuration } from "@/lib/format";
 import { todayKey } from "@/lib/today";
 import { logSession } from "@/app/actions/log-session";
 
@@ -121,24 +121,65 @@ function Heatmap({ years, availableYears, currentYear, year, stats, filter, loca
             <button onClick={() => setSelected(null)} className="text-[var(--dash-fg-3)] hover:text-[var(--dash-fg)]" aria-label={locale === "zh" ? "关闭" : "Close"}>×</button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {(["learning", "english", "coding", "productivity"] as const).map((domain) => {
+            {(["learning", "english", "coding", "productivity", "fitness"] as const).map((domain) => {
               const cell = selectedDay[domain];
-              const unit = { learning: "min", english: "words", coding: "commits", productivity: "tasks" }[domain];
+              const unit = { learning: "min", english: "words", coding: "commits", productivity: "tasks", fitness: "sessions" }[domain];
               const label = locale === "zh"
-                ? ({ learning: "学习", english: "英语", coding: "编程", productivity: "效率" }[domain])
-                : ({ learning: "Study", english: "English", coding: "Coding", productivity: "Career" }[domain]);
+                ? ({ learning: "学习", english: "英语", coding: "编程", productivity: "效率", fitness: "训练" }[domain])
+                : ({ learning: "Study", english: "English", coding: "Coding", productivity: "Career", fitness: "Workouts" }[domain]);
               const valueText = cell.value === 0
                 ? (locale === "zh" ? "无记录" : "No entry")
-                : `${cell.displayValue} ${unit}`;
+                : domain === "fitness"
+                  ? (locale === "zh" ? `${cell.value} 次` : `${cell.value} session${cell.value === 1 ? "" : "s"}`)
+                  : `${cell.displayValue} ${unit}`;
               return (
                 <div key={domain} className="flex items-center gap-2 rounded-[8px] bg-[var(--dash-surface-deep)] px-3 py-2">
-                  <span className={`size-2 rounded-full ${({ learning: "bg-[#4f8fff]", english: "bg-[#9d5bf4]", coding: "bg-[#e8894d]", productivity: "bg-[#50d887]" }[domain])}`} />
+                  <span className={`size-2 rounded-full ${({ learning: "bg-[#4f8fff]", english: "bg-[#9d5bf4]", coding: "bg-[#e8894d]", productivity: "bg-[#50d887]", fitness: "bg-[#45d483]" }[domain])}`} />
                   <span className="flex-1 truncate text-[12px] text-[var(--dash-fg-2)]">{label}</span>
                   <span className="text-[12px] text-[var(--dash-fg)]">{valueText}</span>
                   <span className="w-10 text-right text-[11px] text-[var(--dash-fg-3)]">{Math.round(cell.completion * 100)}%</span>
                 </div>
               );
             })}
+          </div>
+          {selectedDay.workouts.length > 0 && (
+            <div className="mt-3 rounded-[8px] bg-[var(--dash-surface-deep)] p-3">
+              <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--dash-fg)]">
+                <span className="size-2 rounded-full bg-[#45d483]" />
+                {locale === "zh" ? "训练详情" : "Workout details"}
+                <span className="ml-auto text-[11px] font-normal text-[var(--dash-fg-3)]">
+                  {locale === "zh" ? `${selectedDay.workouts.length} 次` : `${selectedDay.workouts.length} session${selectedDay.workouts.length === 1 ? "" : "s"}`}
+                </span>
+              </div>
+              {selectedDay.workouts.map((session, i) => (
+                <div key={i} className="mt-2 border-t border-[var(--dash-border)] pt-2">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-[13px] text-[var(--dash-fg)]">{session.title}</span>
+                    <span className="shrink-0 text-[11px] text-[var(--dash-fg-3)]">
+                      {[
+                        session.minutes != null ? (locale === "zh" ? zhValue(formatDuration(session.minutes)) : formatDuration(session.minutes)) : null,
+                        session.kcal != null ? `${session.kcal} kcal` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </div>
+                  {session.movements.length > 0 && (
+                    <div className="mt-1 truncate text-[11px] text-[var(--dash-fg-3)]">{session.movements.join(" · ")}</div>
+                  )}
+                  {session.topWeights.length > 0 && (
+                    <div className="mt-1 truncate text-[11px] text-[var(--dash-fg-3)]">
+                      {locale === "zh" ? "最大重量：" : "Top weights: "}
+                      {session.topWeights.map((w) => `${w.name} ${formatCount(w.weight)}${w.unit ?? ""}`).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex items-center justify-between border-t border-[var(--dash-border)] pt-2 text-[11px] text-[var(--dash-fg-3)]">
+            <span>{locale === "zh" ? "截至当日的连续天数" : "Streak through this day"}</span>
+            <span className="text-[var(--dash-fg)]">{locale === "zh" ? `${selectedDay.streak} 天` : `${selectedDay.streak} ${selectedDay.streak === 1 ? "day" : "days"}`}</span>
           </div>
         </div>
       )}
@@ -327,7 +368,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
         <div className="hidden self-stretch py-1 xl:block"><div className="flex items-start justify-end gap-4"><Search className="mt-2 size-5 text-[var(--dash-fg-2)]" /><div className="flex items-start gap-3"><span className="size-8 rounded-full bg-[radial-gradient(circle_at_55%_40%,#7e8d86_0_25%,#574934_28%_55%,#202a30_58%)]" /><span className="text-[11px] leading-4 text-[var(--dash-fg-3)]">{locale === "zh" ? <>打造你想要的<br />人生。</> : <>Build the life<br />you want.</>}</span></div></div><div className="mt-3 rounded-[10px] bg-[var(--dash-surface-deep)] px-5 py-4 text-[11px] leading-5 text-[var(--dash-fg-3)]">{locale === "zh" ? <>每天进步一点点&nbsp; —<br />终会积少成多。</> : <>A little progress each day&nbsp; —<br />adds up to big results.</>}</div></div>
       </header>
       <div className="top-metrics-grid">
-        <Panel className="progress-card"><div className="flex items-center gap-2 text-[13px] text-[var(--dash-fg)]">{locale === "zh" ? "进度指数" : "Progress Index"} <Info className="size-3.5 text-[var(--dash-fg-3)]" /></div><div className="mt-3 flex items-start gap-4"><span className="text-[55px] font-semibold leading-none tracking-[-0.045em] text-[var(--dash-fg)]">{data.progress.overall ?? "—"}</span><div><span className={`flex items-center gap-1 text-[15px] ${progressDelta < 0 ? "text-[var(--dash-negative)]" : "text-[var(--dash-positive)]"}`}><ArrowUp className="size-4" />{progressDelta > 0 ? "+" : ""}{progressDelta}%</span><span className="mt-1 block text-[11px] text-[var(--dash-fg-3)]">{locale === "zh" ? "对比 90 天前" : "vs. 90 days ago"}</span></div></div><svg className="absolute bottom-3 left-6 h-14 w-[calc(100%-48px)]" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5868ff" stopOpacity=".35"/><stop offset="1" stopColor="#5868ff" stopOpacity="0"/></linearGradient></defs><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24 L280 56 L0 56Z" fill="url(#area)"/><path d="M0 46 L35 38 L60 32 L77 34 L101 26 L124 29 L150 19 L172 21 L191 15 L218 5 L242 -9 L280 -24" fill="none" stroke="#6570ff" strokeWidth="2"/></svg></Panel>
+        <Panel className="progress-card"><div className="flex items-center gap-2 text-[13px] text-[var(--dash-fg)]">{locale === "zh" ? "进度指数" : "Progress Index"} <Info className="size-3.5 text-[var(--dash-fg-3)]" /></div><div className="mt-3 flex items-start gap-4"><span className="text-[55px] font-semibold leading-none tracking-[-0.045em] text-[var(--dash-fg)]">{data.progress.overall ?? "—"}</span><div><span className={`flex items-center gap-1 text-[15px] ${progressDelta < 0 ? "text-[var(--dash-negative)]" : "text-[var(--dash-positive)]"}`}><ArrowUp className="size-4" />{progressDelta > 0 ? "+" : ""}{progressDelta}%</span><span className="mt-1 block text-[11px] text-[var(--dash-fg-3)]">{locale === "zh" ? "对比 90 天前" : "vs. 90 days ago"}</span></div></div><svg className="absolute bottom-3 left-6 h-14 w-[calc(100%-48px)]" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5868ff" stopOpacity=".35"/><stop offset="1" stopColor="#5868ff" stopOpacity="0"/></linearGradient></defs><path d="M0 54 L35 48 L60 43 L77 44 L101 38 L124 40 L150 32 L172 34 L191 29 L218 21 L242 11 L280 2 L280 56 L0 56Z" fill="url(#area)"/><path d="M0 54 L35 48 L60 43 L77 44 L101 38 L124 40 L150 32 L172 34 L191 29 L218 21 L242 11 L280 2" fill="none" stroke="#6570ff" strokeWidth="2"/></svg></Panel>
         {cards.map((card) => <ActivityCard key={card.label} card={card} />)}
       </div>
       <div className="middle-grid">

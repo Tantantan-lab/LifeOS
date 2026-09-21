@@ -50,6 +50,7 @@ import type {
   Trend,
   VersusRow,
   WindowKey,
+  WorkoutSessionDetail,
 } from "@/data/types";
 import { getDataSources as getDataSourcesDb } from "@/data/db";
 import { addDays, daysBetween, formatDateLong, formatRange, sundayOnOrBefore } from "@/lib/dates";
@@ -163,6 +164,40 @@ function hasAnyEvent(idx: EventIndex, dateKey: string): boolean {
     if (eventsOn(idx, domain, dateKey).length > 0) return true;
   }
   return false;
+}
+
+/** Workout evidence for one day — the day-detail panel's training section.
+ *  Minutes join sessions by title (the minutes event mirrors the session's
+ *  title in its metadata). */
+function workoutsOn(idx: EventIndex, dateKey: string): WorkoutSessionDetail[] {
+  const minutesEvents = eventsOn(idx, "health", dateKey).filter(
+    (e) => e.metric === "health.workout.minutes"
+  );
+  return eventsOn(idx, "health", dateKey)
+    .filter((e) => e.metric === "health.workout.session")
+    .map((e) => {
+      const raw = e.metadata as Record<string, unknown>;
+      const title = String(raw.title ?? "Workout");
+      const minute = minutesEvents.find((m) => m.metadata?.title === title);
+      const movements = Array.isArray(raw.movements) ? raw.movements.map(String) : [];
+      const topWeights = (Array.isArray(raw.top_weights) ? raw.top_weights : []).map(
+        (w) => {
+          const item = w as Record<string, unknown>;
+          return {
+            name: String(item.name ?? ""),
+            weight: Number(item.weight) || 0,
+            unit: typeof item.unit === "string" ? item.unit : null,
+          };
+        }
+      );
+      return {
+        title,
+        minutes: minute ? minute.value : null,
+        kcal: typeof raw.kcal === "number" ? raw.kcal : null,
+        movements,
+        topWeights,
+      };
+    });
 }
 
 /** Heatmap domains that have ANY event in [to-29, to] — the data-aware
@@ -381,6 +416,8 @@ export async function getHeatmapData(): Promise<{
 
   const years: Record<string, HeatmapYear> = {};
   const availableYears: string[] = [];
+  // Streak carries across year boundaries — one chronological pass, O(days).
+  let streakCarry = 0;
   for (let y = Number(earliestYear); y <= Number(currentYear); y++) {
     const year = String(y);
     const yearStart = `${year}-01-01`;
@@ -403,6 +440,7 @@ export async function getHeatmapData(): Promise<{
         cells[domain] = { completion, level: levelOf(completion), value, displayValue };
       }
       const completionAll = completionAllOn(idx, d, active);
+      streakCarry = hasAnyEvent(idx, d) ? streakCarry + 1 : 0;
       days.push({
         date: d,
         completionAll,
@@ -412,6 +450,8 @@ export async function getHeatmapData(): Promise<{
         coding: cells.coding,
         productivity: cells.productivity,
         fitness: cells.fitness,
+        workouts: workoutsOn(idx, d),
+        streak: streakCarry,
       });
     }
     years[year] = { gridStart: sundayOnOrBefore(yearStart), days };

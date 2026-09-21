@@ -141,6 +141,16 @@ export interface HeatmapDayCell {
   displayValue: number | null;
 }
 
+/** One workout session's evidence for the day-detail panel (Xunji metadata). */
+export interface WorkoutSessionDetail {
+  title: string;
+  /** null when the source reported no start/end. */
+  minutes: number | null;
+  kcal: number | null;
+  movements: string[];
+  topWeights: { name: string; weight: number; unit: string | null }[];
+}
+
 export interface HeatmapDay {
   date: string;
   completionAll: number;
@@ -150,6 +160,10 @@ export interface HeatmapDay {
   coding: HeatmapDayCell;
   productivity: HeatmapDayCell;
   fitness: HeatmapDayCell;
+  /** Workout sessions logged that day (empty when none). */
+  workouts: WorkoutSessionDetail[];
+  /** Consecutive active days ending on this date (any heatmap facet). */
+  streak: number;
 }
 
 export type WindowKey = "30D" | "90D" | "1Y" | "Beginning";

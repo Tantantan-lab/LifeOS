@@ -108,6 +108,7 @@ class XunjiConnector:
         top_weights = []
         for m in movements:
             best = None
+            best_unit = None
             for s in m.get("sets") or []:
                 if not s.get("done"):
                     continue
@@ -119,8 +120,11 @@ class XunjiConnector:
                         continue
                     if best is None or wv > best:
                         best = wv
+                        best_unit = s.get("unit")
             if best is not None:
-                top_weights.append({"name": m.get("name"), "weight": best})
+                top_weights.append(
+                    {"name": m.get("name"), "weight": best, "unit": best_unit}
+                )
         if top_weights:
             meta["top_weights"] = top_weights[:10]
 

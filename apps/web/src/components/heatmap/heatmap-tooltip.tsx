@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const LABEL: Record<HeatmapFilter, string> = {
   all: "Overall",
-  learning: "Learning",
+  learning: "Reading",
   english: "English",
   coding: "Coding",
   productivity: "Productivity",
@@ -46,7 +46,7 @@ export function HeatmapTooltip({
     const pct = Math.round(day.completionAll * 100);
     valueLine = `${pct}%`;
     goalLine = "4-domain average";
-    sourceLine = "learning · english · coding · productivity";
+    sourceLine = "reading · english · coding · productivity";
   } else {
     const meta = HEATMAP_META[domain];
     const cell = day[domain];

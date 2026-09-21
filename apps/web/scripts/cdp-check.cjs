@@ -93,6 +93,7 @@ async function main() {
   // ---------- Theme + decision loop ----------
   await checkPage("/", [
     ["language toggle EN->zh", `(async () => { const btn = document.querySelector('[aria-label="切换到中文"]'); if (!btn) return false; btn.click(); await new Promise(r => setTimeout(r, 400)); const zh = document.body.innerText.includes("今天") && document.body.innerText.includes("进度指数"); const back = document.querySelector('[aria-label="Switch to English"]'); if (back) back.click(); return zh; })()`],
+    ["no exploding percentages (>=1000%)", `!/\\d{4,}%/.test(document.body.innerText)`],
   ]);
 
   // ---------- Today page (session timer lives here) ----------

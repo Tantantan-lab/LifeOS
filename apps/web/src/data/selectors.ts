@@ -304,7 +304,13 @@ function trendOf(deltaPct: number, epsilon = 3): Trend {
 
 function deltaPctOf(now: number, then: number): number {
   if (then <= 0) return now > 0 ? 100 : 0;
-  return ((now - then) / then) * 100;
+  // A negligible baseline (e.g. 2 min of history) makes the % explode —
+  // +13850% is noise, not evidence. Report the same "new data" signal
+  // (+100%) already used for a zero baseline.
+  if (then < now * 0.01) return 100;
+  // Above ~10x the percentage stops meaning anything to a reader; the
+  // trend word and sparkline carry the real shape.
+  return Math.max(-999, Math.min(999, ((now - then) / then) * 100));
 }
 
 const PREV_OFFSETS = {

@@ -9,6 +9,26 @@
 [![Demo](https://img.shields.io/badge/demo-live-4f46e5?logo=github)](https://tantantan-lab.github.io/LifeOS/)
 [![GitHub Pages](https://img.shields.io/badge/pages-static%20demo-22272e?logo=githubpages)](https://tantantan-lab.github.io/LifeOS/)
 
+## 中文介绍
+
+LifeOS 是一个个人生活数据仪表盘，把真实的日常活动（学习、英语、健身、编程、睡眠……）汇聚成一条证据流，回答三个问题：
+
+1. **我做了什么？** —— 贡献热力图（365 天，强度按当天值计）
+2. **我变了多少？** —— 今昔对比（30 天 / 90 天 / 1 年 / 最初）
+3. **下一步去哪？** —— 目标差距 → 下一步行动（带计时器的决策闭环）
+
+**在线演示 → [tantantan-lab.github.io/LifeOS](https://tantantan-lab.github.io/LifeOS/)**（支持中英文、明暗主题。演示站使用写死的确定性 mock 数据，侧栏标注 "Demo data · not real"——你的真实数据永不出本机。）
+
+核心亮点：
+
+- **365 天热力图**：强度 = 目标完成率，100% 封顶；周目标格子测当天本身（休息日就是空格）
+- **五大域一条事件流**：学习 / 英语 / 编程 / 健康 / 效率，官方接口（GitHub、微信读书、墨墨、滴答、训记）+ 手动记录
+- **洞察是「选择」出来的，不是「生成」的**：代码用你的数字渲染候选句，TypeSafe 的 Jev 模型每题选一句——数字不可能被编造，评判性词汇不可能出现，中英双语
+- **目标与就绪度**：只和自己比（海外工程师基准），绝无百分位排名
+- **隐私默认**：单用户、数据库只绑本机、密钥只在服务端
+
+---
+
 A personal life-data dashboard that aggregates your real activity — study, English, fitness, coding, sleep — into one evidence stream, and answers three questions:
 
 1. **What have I done?** — Contribution heatmap (365 days, day-value semantics)

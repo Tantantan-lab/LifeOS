@@ -87,6 +87,20 @@ npm run typecheck       # tsc --noEmit
 npm run db:reset        # wipe + recreate + migrate + re-seed (destructive)
 ```
 
+## Docker deployment
+
+生产形态是全栈三容器（web + api + db），sub2api 式单机部署：
+
+```bash
+npm run up          # docker compose up -d --build — web (standalone) + api + postgres:17
+```
+
+- `apps/web/Dockerfile` — multi-stage：装依赖 → 编译 → 只运行 standalone runner（`.next/standalone` + 静态资源）；构建前自动清理 `.next`，防增量缓存毒化镜像
+- `apps/api/Dockerfile` — FastAPI 连接器引擎（定时同步 + TypeSafe 洞察），绑定 127.0.0.1:8000
+- 数据 bind-mount 在 `.data/postgres`；所有端口只绑本机；密钥只在 `apps/api/.env`（gitignored）
+
+公开演示站走的是另一条路：静态导出 + 确定性 mock 数据上 GitHub Pages，见 [docs/demo-deploy.md](docs/demo-deploy.md)。
+
 ## Layout
 
 ```

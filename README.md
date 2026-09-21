@@ -9,7 +9,7 @@
 [![Demo](https://img.shields.io/badge/demo-live-4f46e5?logo=github)](https://tantantan-lab.github.io/LifeOS/)
 [![GitHub Pages](https://img.shields.io/badge/pages-static%20demo-22272e?logo=githubpages)](https://tantantan-lab.github.io/LifeOS/)
 
-A personal life-data dashboard that aggregates your real activity — study, English, fitness, coding, sleep — into one evidence stream, and answers three questions:
+A personal life-data dashboard that **tracks you seamlessly** — connect your apps once (WeRead, Maimemo, TickTick, Xunji, GitHub) and your study, English, fitness, coding and sleep sync in on their own. No check-ins, no manual logging. It aggregates that stream into evidence and answers three questions:
 
 1. **What have I done?** — Contribution heatmap (365 days, day-value semantics)
 2. **How much have I changed?** — Me vs Me windows (30D / 90D / 1Y / Beginning)
@@ -27,11 +27,11 @@ The public demo runs on a **static snapshot of deterministic mock data** — no 
 
 ## Highlights
 
+- **Seamless tracking** — connect once and data flows on its own: reading, vocabulary, tasks, workouts, commits all sync passively from official APIs. No check-ins, no manual entry
 - **365-day contribution heatmap** — intensity = goal completion capped at 100%; weekly-goal cells measure the day itself (a rest day renders empty)
-- **Five domains, one event stream** — learning / english / coding / health / productivity, merged from official connectors (GitHub, WeRead, Maimemo, TickTick, Xunji) and manual logging
+- **Five domains, one event stream** — learning / english / coding / health / productivity, merged from official connectors (WeRead, Maimemo, TickTick, Xunji, GitHub) with the session timer as the only manual step
 - **Insights that are selected, not generated** — code renders candidate sentences from your numbers; a TypeSafe System One model (Jev) picks one per section. Numbers can't be hallucinated; judgment words can't appear. Fully bilingual (en/zh)
 - **Goals & readiness** — you vs. your own target (Overseas Engineer benchmark), never a percentile or a ranking
-- **Decision loop** — Next Best Action with evidence ("Why now?"), a session timer, and manual event logging that feeds the loop
 - **Privacy by default** — single-user, localhost-bound Postgres, server-only credentials
 
 ## Tech stack

@@ -55,7 +55,7 @@ async function main() {
     await page.send("Runtime.enable");
     await page.send("Log.enable");
     // wait for hydration
-    await sleep(2500);
+    await sleep(4500);
     for (const [name, expr] of checks) {
       try {
         const value = await evaluate(page, expr);

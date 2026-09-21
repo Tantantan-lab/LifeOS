@@ -1,33 +1,13 @@
 # LifeOS
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 > **Compete with your past. Benchmark against the world.**
-> 和过去的自己竞争，用世界作为坐标。
 >
 > **No judgment. Just evidence.**
-> 不评价，只提供证据。
 
 [![Demo](https://img.shields.io/badge/demo-live-4f46e5?logo=github)](https://tantantan-lab.github.io/LifeOS/)
 [![GitHub Pages](https://img.shields.io/badge/pages-static%20demo-22272e?logo=githubpages)](https://tantantan-lab.github.io/LifeOS/)
-
-## 中文介绍
-
-LifeOS 是一个个人生活数据仪表盘，把真实的日常活动（学习、英语、健身、编程、睡眠……）汇聚成一条证据流，回答三个问题：
-
-1. **我做了什么？** —— 贡献热力图（365 天，强度按当天值计）
-2. **我变了多少？** —— 今昔对比（30 天 / 90 天 / 1 年 / 最初）
-3. **下一步去哪？** —— 目标差距 → 下一步行动（带计时器的决策闭环）
-
-**在线演示 → [tantantan-lab.github.io/LifeOS](https://tantantan-lab.github.io/LifeOS/)**（支持中英文、明暗主题。演示站使用写死的确定性 mock 数据，侧栏标注 "Demo data · not real"——你的真实数据永不出本机。）
-
-核心亮点：
-
-- **365 天热力图**：强度 = 目标完成率，100% 封顶；周目标格子测当天本身（休息日就是空格）
-- **五大域一条事件流**：学习 / 英语 / 编程 / 健康 / 效率，官方接口（GitHub、微信读书、墨墨、滴答、训记）+ 手动记录
-- **洞察是「选择」出来的，不是「生成」的**：代码用你的数字渲染候选句，TypeSafe 的 Jev 模型每题选一句——数字不可能被编造，评判性词汇不可能出现，中英双语
-- **目标与就绪度**：只和自己比（海外工程师基准），绝无百分位排名
-- **隐私默认**：单用户、数据库只绑本机、密钥只在服务端
-
----
 
 A personal life-data dashboard that aggregates your real activity — study, English, fitness, coding, sleep — into one evidence stream, and answers three questions:
 
@@ -89,17 +69,17 @@ npm run db:reset        # wipe + recreate + migrate + re-seed (destructive)
 
 ## Docker deployment
 
-生产形态是全栈三容器（web + api + db），sub2api 式单机部署：
+The production shape is the full three-container stack (web + api + db), sub2api-style single-host:
 
 ```bash
 npm run up          # docker compose up -d --build — web (standalone) + api + postgres:17
 ```
 
-- `apps/web/Dockerfile` — multi-stage：装依赖 → 编译 → 只运行 standalone runner（`.next/standalone` + 静态资源）；构建前自动清理 `.next`，防增量缓存毒化镜像
-- `apps/api/Dockerfile` — FastAPI 连接器引擎（定时同步 + TypeSafe 洞察），绑定 127.0.0.1:8000
-- 数据 bind-mount 在 `.data/postgres`；所有端口只绑本机；密钥只在 `apps/api/.env`（gitignored）
+- `apps/web/Dockerfile` — multi-stage build: install deps, compile, then run ONLY the standalone runner (`.next/standalone` + static assets); cleans `.next` before building so stale incremental caches can't poison the image
+- `apps/api/Dockerfile` — FastAPI connector engine (scheduled sync + TypeSafe insights), bound to 127.0.0.1:8000
+- Data bind-mounts at `.data/postgres`; every port is localhost-bound; credentials live only in `apps/api/.env` (gitignored)
 
-公开演示站走的是另一条路：静态导出 + 确定性 mock 数据上 GitHub Pages，见 [docs/demo-deploy.md](docs/demo-deploy.md)。
+The public demo takes a different route — static export + deterministic mock data on GitHub Pages, see [docs/demo-deploy.md](docs/demo-deploy.md).
 
 ## Layout
 

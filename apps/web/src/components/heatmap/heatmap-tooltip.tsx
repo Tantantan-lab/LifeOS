@@ -60,12 +60,11 @@ export function HeatmapTooltip({
     const pct = Math.round(cell.completion * 100);
     const label = t(locale, LABEL[domain]);
     const goalLabel = t(locale, meta.goalLabel);
-    const weekSuffix = t(locale, " this week");
     if (cell.value === 0) {
       valueLine = zh ? `无${label}记录` : noLogged(label);
       goalLine = zh ? `目标：${goalLabel}` : `Goal: ${meta.goalLabel}`;
     } else {
-      valueLine = `${cell.displayValue} ${t(locale, UNIT[domain])}${meta.goalMode === "trailing7" ? weekSuffix : ""}`;
+      valueLine = `${cell.displayValue} ${t(locale, UNIT[domain])}`;
       goalLine = zh ? `${goalLabel}的 ${pct}%` : `${pct}% of ${meta.goalLabel}`;
     }
     const source = { learning: "timer", english: "anki", coding: "demo", productivity: "demo", fitness: "xunji" }[domain] as "timer";

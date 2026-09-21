@@ -194,8 +194,8 @@ SyncStatus。
 4. Compare with past self
 5. World = benchmark, not ranking
 6. AI cannot invent metrics
-7. Analytics first, LLM second（Raw Events → Analytics Engine → Structured
-   Summary → LLM）
+7. Analytics first, selection last（Raw Events → Analytics Engine → Structured
+   Summary → candidate sentences → TypeSafe Choice）
 
 ## 最终视觉要求
 

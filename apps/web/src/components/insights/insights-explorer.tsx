@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { pickInsightText } from "@/data/types";
 import type { GapItem, InsightRecord, InsightTrendRow } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
@@ -159,7 +160,7 @@ export function InsightsExplorer({
                       ? ({ fact: "事实", trend: "趋势", gap: "差距", action: "行动" }[section.key])
                       : section.label}
                   </div>
-                  <p className="mt-2 text-fg">{insight.content[section.key]}</p>
+                  <p className="mt-2 text-fg">{pickInsightText(insight.content[section.key], zh)}</p>
                   <div className="mt-2 text-micro text-fg-muted">
                     {t(locale, section.description)}
                   </div>

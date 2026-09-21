@@ -70,6 +70,18 @@ export function formatTime(timestamp: string): string {
   return timestamp.slice(11, 16);
 }
 
+/**
+ * Percentage delta with the "no exploding percentages" bound: a zero or
+ * negligible (< 1% of now) baseline is new data (+100%); otherwise clamp
+ * to ±999% — past ~10x a percentage stops meaning anything to a reader.
+ * The API's analytics._delta mirrors this rule.
+ */
+export function deltaPctOf(now: number, then: number): number {
+  if (then <= 0) return now > 0 ? 100 : 0;
+  if (then < now * 0.01) return 100;
+  return Math.max(-999, Math.min(999, ((now - then) / then) * 100));
+}
+
 /** "just now" / "5 min ago" / "3 h ago" / "2 d ago" — sync-status display. */
 export function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();

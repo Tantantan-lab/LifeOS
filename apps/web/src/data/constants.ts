@@ -8,7 +8,8 @@ import type { Domain, HeatmapDomain, Source, WindowKey } from "@/data/types";
  */
 
 /**
- * Last day of the MOCK dataset — used ONLY by generator.ts / seed.ts.
+ * Last day of the MOCK dataset — used by generator.ts / seed.ts, and as
+ * the frozen "today" for static demo builds (lib/today.ts).
  * Selectors use src/lib/today.ts (real today, Asia/Shanghai). Today equals
  * this date at seed time, so mock numbers render identically on day one.
  */
@@ -45,8 +46,9 @@ export interface DomainMeta {
   unitLabel: string;
   goalLabel: string;
   dayGoal: number;
-  /** "day" → today vs dayGoal. "trailing7" → trailing-7 sum vs weeklyGoal. */
-  goalMode: "day" | "trailing7";
+  /** "day" → the day's value vs dayGoal. "weekly" → the day's value vs
+   * weeklyGoal (cells measure the DAY, not a trailing-7 pace). */
+  goalMode: "day" | "weekly";
   weeklyGoal: number | null;
   /** Typical sources of the MOCK events (Today/tooltip provenance). */
   sources: Source[];
@@ -88,7 +90,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
     unitLabel: "/week",
     goalLabel: "10 commits/week",
     dayGoal: 0,
-    goalMode: "trailing7",
+    goalMode: "weekly",
     weeklyGoal: 10,
     sources: ["demo"],
     confidences: [0.95],
@@ -114,7 +116,7 @@ export const DOMAIN_META: Record<Domain, DomainMeta> = {
     unitLabel: "/week",
     goalLabel: "15 tasks/week",
     dayGoal: 0,
-    goalMode: "trailing7",
+    goalMode: "weekly",
     weeklyGoal: 15,
     sources: ["demo"],
     confidences: [0.9],
@@ -142,14 +144,14 @@ export const FITNESS_HEATMAP = {
 
 export const HEATMAP_META: Record<
   HeatmapDomain,
-  { label: string; goalLabel: string; goalMode: "day" | "trailing7"; unit: string }
+  { label: string; goalLabel: string; goalMode: "day" | "weekly"; unit: string }
 > = {
   // The facet reads "Reading": WeRead is the learning evidence (real data).
   learning: { label: "Reading", goalLabel: "120 min/day", goalMode: "day", unit: "min" },
   english: { label: "English", goalLabel: "40 words/day", goalMode: "day", unit: "words" },
-  coding: { label: "Coding", goalLabel: "10 commits/week", goalMode: "trailing7", unit: "commits" },
-  productivity: { label: "Productivity", goalLabel: "15 tasks/week", goalMode: "trailing7", unit: "tasks" },
-  fitness: { label: "Fitness", goalLabel: "3 sessions/week", goalMode: "trailing7", unit: "sessions" },
+  coding: { label: "Coding", goalLabel: "10 commits/week", goalMode: "weekly", unit: "commits" },
+  productivity: { label: "Productivity", goalLabel: "15 tasks/week", goalMode: "weekly", unit: "tasks" },
+  fitness: { label: "Fitness", goalLabel: "3 sessions/week", goalMode: "weekly", unit: "sessions" },
 };
 
 /** Me vs Me rows — metric-keyed; rows without data are filtered at render. */

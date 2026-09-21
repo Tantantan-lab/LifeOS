@@ -1,8 +1,8 @@
-"""Structured summary builder — the ONLY input the LLM ever sees.
+"""Structured summary builder — the ONLY input the model (Jev) ever sees.
 
 Mirrors the web selectors' math (delta windows, goal completion,
-consistency) and tags every domain with a data_state so the LLM never
-presents demo numbers as the user's life:
+consistency) and tags every domain with a data_state so the insights
+pipeline never presents demo numbers as the user's life:
   has_real_data  → at least one connector row in the window
   mock_only      → only demo rows
   no_data        → nothing at all
@@ -123,9 +123,11 @@ async def build_summary(period_start: date, period_end: date) -> dict[str, Any]:
                 "domain": domain,
                 "metric": metric,
                 "period_total": round(last, 1),
+                "period_avg": round(last / days, 1) if days else 0.0,
                 "prev_total": round(prev, 1),
                 "delta_pct": round(delta, 1),
                 "period90_total": round(last90, 1),
+                "prev90_total": round(prev90, 1),
                 "delta90_pct": round(delta90, 1),
                 "goal": goal_desc,
                 "completion": round(completion, 3),
@@ -160,6 +162,11 @@ async def build_summary(period_start: date, period_end: date) -> dict[str, Any]:
 
 
 def _delta(now: float, then: float) -> float:
+    """Mirrors the web's deltaPctOf (selectors.ts): a zero or negligible
+    (< 1% of now) baseline is new data (+100%); otherwise clamp to ±999% —
+    past ~10x a percentage stops meaning anything to a reader."""
     if then <= 0:
         return 100.0 if now > 0 else 0.0
-    return (now - then) / then * 100
+    if then < now * 0.01:
+        return 100.0
+    return max(-999.0, min(999.0, (now - then) / then * 100))

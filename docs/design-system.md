@@ -90,7 +90,7 @@ no big gradients. The product must stay quiet.
 - 5 levels: 0% / 1–25 / 25–50 / 50–80 / 80–100. Level 0 = Surface 2
   (an empty day is a cell, not a hole). Ramps = domain hue mixed into
   Surface 2 (oklab 22/45/72/100%); the All view uses the brand ramp.
-- Coding/productivity compare the trailing 7 days to their weekly goals.
+- Coding / productivity / fitness compare the day's value to their weekly goals.
 - Health is excluded — sleep's target is a band, not a floor.
 - The legend caption always travels with the heatmap: "Intensity = % of
   that day's goal · capped at 100%".

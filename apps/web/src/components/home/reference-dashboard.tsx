@@ -6,6 +6,8 @@ import {
   ArrowRight, ArrowUp, BookOpen, Check, ChevronLeft, ChevronRight, Circle,
   Code2, Dumbbell, Info, Languages, Moon, PenLine, Search, Sun, Target,
 } from "lucide-react";
+import { pickInsightText } from "@/data/types";
+import type { CardSeries } from "@/data/selectors";
 import type {
   DomainSummary, GapItem, GoalProgress, GoalRow, HeaderStatus, HeatmapDay,
   HeatmapStats, InsightRecord, InsightTrendRow, MeVsMeWindow, NextBestAction,
@@ -13,10 +15,10 @@ import type {
 } from "@/data/types";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { buildGrid } from "@/components/heatmap/heatmap-geometry";
-import { formatDateLong } from "@/lib/dates";
-import { formatCount, formatDateLongZh, formatDuration } from "@/lib/format";
+import { addDays, formatDateLong } from "@/lib/dates";
+import { deltaPctOf, formatCount, formatDateLongZh, formatDuration } from "@/lib/format";
+import { logSessionNow } from "@/lib/log-session-client";
 import { todayKey } from "@/lib/today";
-import { logSession } from "@/app/actions/log-session";
 
 export interface DashboardData {
   progress: GoalProgress;
@@ -32,6 +34,8 @@ export interface DashboardData {
   header: HeaderStatus;
   todayCompletion: number | null;
   nextAction: NextBestAction | null;
+  /** Per-day raw values backing the date-driven activity cards. */
+  cardSeries: Record<string, CardSeries>;
 }
 
 type Accent = "blue" | "purple" | "green" | "orange";
@@ -50,7 +54,6 @@ const activityCards: { label: string; value: string; change: string; accent: Acc
 ];
 
 const dayRows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function Panel({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return <section className={`life-panel ${className}`}>{children}</section>;
@@ -76,8 +79,7 @@ function ActivityCard({ card }: { card: (typeof activityCards)[number] }) {
 
 type HeatFilter = "all" | "learning" | "english" | "coding" | "productivity" | "fitness";
 
-function Heatmap({ years, availableYears, currentYear, year, stats, filter, locale }: { years: Record<string, { gridStart: string; days: HeatmapDay[] }>; availableYears: string[]; currentYear: string; year: string; stats: HeatmapStats; filter: HeatFilter; locale: "en" | "zh" }) {
-  const [selected, setSelected] = useState<HeatmapDay | null>(null);
+function Heatmap({ years, currentYear, year, stats, filter, locale, selectedDate, onSelectDate }: { years: Record<string, { gridStart: string; days: HeatmapDay[] }>; currentYear: string; year: string; stats: HeatmapStats; filter: HeatFilter; locale: "en" | "zh"; selectedDate: string | null; onSelectDate: (dateKey: string | null) => void }) {
   const yearData = years[year] ?? years[currentYear];
   const days = yearData.days;
   const gridStart = yearData.gridStart;
@@ -86,7 +88,7 @@ function Heatmap({ years, availableYears, currentYear, year, stats, filter, loca
     [gridStart, days]
   );
   const cells = days.slice(-371).map((day) => filter === "all" ? day.levelAll : day[filter].level);
-  const selectedDay = selected;
+  const selectedDay = selectedDate ? (days.find((day) => day.date === selectedDate) ?? null) : null;
   return (
     <div className="mt-5 overflow-hidden">
       {/* Month labels aligned to the REAL 53-column geometry (not 12 equal buckets) */}
@@ -106,9 +108,9 @@ function Heatmap({ years, availableYears, currentYear, year, stats, filter, loca
               key={index}
               type="button"
               data-level={level}
-              data-selected={selected?.date === days[index].date}
+              data-selected={selectedDate === days[index].date}
               aria-label={days[index].date}
-              onClick={() => setSelected(selected?.date === days[index].date ? null : days[index])}
+              onClick={() => onSelectDate(selectedDate === days[index].date ? null : days[index].date)}
             />
           ))}
         </div>
@@ -118,7 +120,7 @@ function Heatmap({ years, availableYears, currentYear, year, stats, filter, loca
           <div className="flex items-center justify-between">
             <span className="text-[13px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? formatDateLongZh(selectedDay.date) : formatDateLong(selectedDay.date)}</span>
             <span className="text-[11px] text-[var(--dash-fg-3)]">{locale === "zh" ? `当日目标：${Math.round(selectedDay.completionAll * 100)}%` : `Daily Goal: ${Math.round(selectedDay.completionAll * 100)}%`}</span>
-            <button onClick={() => setSelected(null)} className="text-[var(--dash-fg-3)] hover:text-[var(--dash-fg)]" aria-label={locale === "zh" ? "关闭" : "Close"}>×</button>
+            <button onClick={() => onSelectDate(null)} className="text-[var(--dash-fg-3)] hover:text-[var(--dash-fg)]" aria-label={locale === "zh" ? "关闭" : "Close"}>×</button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {(["learning", "english", "coding", "productivity", "fitness"] as const).map((domain) => {
@@ -233,7 +235,7 @@ function TodayCard({ items, completion, action, locale }: { items: TodayItem[]; 
   function completeAction() {
     if (!action || isPending) return;
     startTransition(async () => {
-      await logSession(action.metric, action.domain, action.minutes);
+      await logSessionNow(action.metric, action.domain, action.minutes);
       setLogged(true);
     });
   }
@@ -292,7 +294,7 @@ function InsightsCard({ insight, trends, gaps, locale }: { insight: InsightRecor
       {tab === "summary" && <><div className="mt-3 rounded-[10px] bg-[var(--dash-surface)]"><div className="flex gap-3 p-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--dash-surface-hi)] text-[var(--dash-positive)]"><ArrowUp className="size-4" /></span><div><div className="text-[12px] font-medium text-[var(--dash-fg)]">{locale === "zh" ? "这个月你取得了持续进展。" : "You made solid progress this month."}</div><p className="mt-1 text-[11px] leading-5 text-[var(--dash-fg-3)]">{lead ? `${locale === "zh" ? zhLabel(lead.label) : lead.label} ${locale === "zh" ? "近 30 天提升" : "improved by"} ${pct(lead.delta30)}.` : (locale === "zh" ? "继续记录数据以生成趋势。" : "Keep logging data to reveal trends.")}</p></div></div><div className="grid grid-cols-4 border-t border-[var(--dash-border)] py-3 text-center">{trends.slice(0, 4).map((row) => <div key={row.metric} className="border-r border-[var(--dash-border)] last:border-0"><div className={row.delta30 < 0 ? "text-[var(--dash-negative)]" : "text-[var(--dash-positive)]"}>{pct(row.delta30)}</div><div className="mt-0.5 truncate px-1 text-[9px] text-[var(--dash-fg-3)]">{locale === "zh" ? zhLabel(row.label) : row.label}</div></div>)}</div></div><div className="mt-3 flex items-center gap-3 rounded-[10px] bg-[var(--dash-surface)] p-3"><span className="flex size-9 items-center justify-center rounded-full bg-[var(--dash-surface-hi)] text-[#b96cf5]"><Target className="size-4" /></span><div className="flex-1"><div className="text-[10px] text-[var(--dash-fg-3)]">{locale === "zh" ? "首要差距" : "Top Gap"}</div><div className="text-[12px] font-medium text-[var(--dash-fg)]">{gaps[0]?.skill ?? "—"}</div></div><ChevronRight className="size-4 text-[var(--dash-fg-2)]" /></div></>}
       {tab === "trends" && <div className="mt-3 space-y-2 rounded-[10px] bg-[var(--dash-surface)] p-3">{trends.slice(0, 5).map((row) => <div key={row.metric} className="flex items-center justify-between text-[11px]"><span className="text-[var(--dash-fg-2)]">{locale === "zh" ? zhLabel(row.label) : row.label}</span><span className={row.delta30 < 0 ? "text-[var(--dash-negative)]" : "text-[var(--dash-positive)]"}>{pct(row.delta30)}</span></div>)}</div>}
       {tab === "gaps" && <div className="mt-3 space-y-2 rounded-[10px] bg-[var(--dash-surface)] p-3">{gaps.slice(0, 4).map((gap) => <div key={gap.rank} className="flex items-start gap-3 text-[11px]"><span className="text-[#b96cf5]">#{gap.rank}</span><div><div className="text-[var(--dash-fg)]">{gap.skill} · {gap.gapLabel}</div><div className="text-[var(--dash-fg-3)]">{gap.note}</div></div></div>)}</div>}
-      {tab === "analysis" && <div className="mt-3 rounded-[10px] bg-[var(--dash-surface)] p-4 text-[11px] leading-5 text-[var(--dash-fg-3)]">{insight ? <><p><strong className="text-[var(--dash-fg)]">FACT · </strong>{insight.content.fact}</p><p className="mt-2"><strong className="text-[var(--dash-fg)]">ACTION · </strong>{insight.content.action}</p></> : (locale === "zh" ? "尚未生成月度 AI 洞察。" : "No monthly AI insight has been generated yet.")}</div>}
+      {tab === "analysis" && <div className="mt-3 rounded-[10px] bg-[var(--dash-surface)] p-4 text-[11px] leading-5 text-[var(--dash-fg-3)]">{insight ? <><p><strong className="text-[var(--dash-fg)]">FACT · </strong>{pickInsightText(insight.content.fact, locale === "zh")}</p><p className="mt-2"><strong className="text-[var(--dash-fg)]">ACTION · </strong>{pickInsightText(insight.content.action, locale === "zh")}</p></> : (locale === "zh" ? "尚未生成月度 AI 洞察。" : "No monthly AI insight has been generated yet.")}</div>}
     </Panel>
   );
 }
@@ -306,6 +308,10 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
   );
   const [heatFilter, setHeatFilter] = useState<HeatFilter>("all");
   const [heatYear, setHeatYear] = useState<string>(data.heatmap.currentYear);
+  // null = today (cards render the default today view); a clicked heatmap
+  // cell or shifted date drives the five activity cards + the date label.
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const seriesStart = Object.keys(data.cardSeries)[0] ?? todayKey();
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
@@ -319,7 +325,26 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
   }
   const byDomain = useMemo(() => Object.fromEntries(data.summaries.map((summary) => [summary.domain, summary])), [data.summaries]);
   const workoutRow = data.meVsMe["30D"].rows.find((row) => row.key === "workout");
+  const selectedSeries = selectedDate ? data.cardSeries[selectedDate] : null;
+  const prevSeries = selectedDate ? data.cardSeries[addDays(selectedDate, -1)] : null;
   const cards = activityCards.map((card) => {
+    const label = locale === "zh" ? ({ Study: "学习", English: "英语", Fitness: "健身", Coding: "编程", Sleep: "睡眠" }[card.label] ?? card.label) : card.label;
+    // Date-driven branch: a selected day renders that day's own numbers and
+    // a day-over-day change — the numbers come from the card series, so a
+    // click never needs a round-trip.
+    if (selectedDate) {
+      if (!selectedSeries) return { ...card, label, value: "—", change: "—" };
+    }
+    if (selectedSeries) {
+      const pick = (s: CardSeries) =>
+        card.label === "Study" ? s.study : card.label === "English" ? s.english
+        : card.label === "Fitness" ? s.fitness : card.label === "Coding" ? s.coding : s.sleep;
+      const v = pick(selectedSeries);
+      const value = card.label === "Fitness"
+        ? v === 0 ? "—" : locale === "zh" ? `${v} 次` : `${v} session${v === 1 ? "" : "s"}`
+        : card.label === "Study" || card.label === "Sleep" ? formatDuration(v) : String(v);
+      return { ...card, label, value, change: pct(deltaPctOf(v, prevSeries ? pick(prevSeries) : 0)) };
+    }
     const domain = card.label === "Study" ? "learning" : card.label === "English" ? "english" : card.label === "Coding" ? "coding" : card.label === "Sleep" ? "health" : null;
     const summary = domain ? byDomain[domain] : null;
     // health today items are Sleep + workout types — a workout item is any
@@ -329,7 +354,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
     );
     return {
       ...card,
-      label: locale === "zh" ? ({ Study: "学习", English: "英语", Fitness: "健身", Coding: "编程", Sleep: "睡眠" }[card.label] ?? card.label) : card.label,
+      label,
       value:
         card.label === "Fitness"
           ? (workout?.valueLabel ?? "—")
@@ -364,7 +389,7 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
             </p>
           )}
         </div>
-        <div className="dashboard-date-controls flex items-center gap-4 text-[12px] text-[var(--dash-fg)]"><span>{locale === "zh" ? formatDateLongZh(todayKey()) : data.header.dateLabel}</span><ChevronLeft className="size-4 text-[var(--dash-fg-3)]" /><ChevronRight className="size-4 text-[#525b69]" /><button onClick={toggleTheme} suppressHydrationWarning aria-label={theme === "dark" ? (locale === "zh" ? "切换到白日模式" : "Switch to light mode") : (locale === "zh" ? "切换回暗夜模式" : "Switch to dark mode")} title={theme === "dark" ? (locale === "zh" ? "切换到白日模式" : "Switch to light mode") : (locale === "zh" ? "切换回暗夜模式" : "Switch to dark mode")}>{theme === "dark" ? <Sun className="size-[18px] text-[#f0b84b]" /> : <Moon className="size-[18px] text-[var(--dash-link)]" />}</button><button onClick={() => setLocale(locale === "en" ? "zh" : "en")} className="language-toggle" aria-label={locale === "en" ? "切换到中文" : "Switch to English"}><span className={locale === "en" ? "active" : ""}>EN</span><span className={locale === "zh" ? "active" : ""}>中</span></button></div>
+        <div className="dashboard-date-controls flex items-center gap-4 text-[12px] text-[var(--dash-fg)]"><span onClick={() => setSelectedDate(null)} title={locale === "zh" ? "回到今天" : "Back to today"} className="cursor-pointer select-none">{selectedDate ? (locale === "zh" ? formatDateLongZh(selectedDate) : formatDateLong(selectedDate)) : (locale === "zh" ? formatDateLongZh(todayKey()) : data.header.dateLabel)}</span><button onClick={() => setSelectedDate(addDays(selectedDate ?? todayKey(), -1))} disabled={selectedDate !== null && selectedDate <= seriesStart} aria-label={locale === "zh" ? "前一天" : "Previous day"} className="disabled:opacity-30"><ChevronLeft className="size-4 text-[var(--dash-fg-3)]" /></button><button onClick={() => setSelectedDate(addDays(selectedDate ?? todayKey(), 1))} disabled={selectedDate === null || selectedDate >= todayKey()} aria-label={locale === "zh" ? "后一天" : "Next day"} className="disabled:opacity-30"><ChevronRight className="size-4 text-[#525b69]" /></button><button onClick={toggleTheme} suppressHydrationWarning aria-label={theme === "dark" ? (locale === "zh" ? "切换到白日模式" : "Switch to light mode") : (locale === "zh" ? "切换回暗夜模式" : "Switch to dark mode")} title={theme === "dark" ? (locale === "zh" ? "切换到白日模式" : "Switch to light mode") : (locale === "zh" ? "切换回暗夜模式" : "Switch to dark mode")}>{theme === "dark" ? <Sun className="size-[18px] text-[#f0b84b]" /> : <Moon className="size-[18px] text-[var(--dash-link)]" />}</button><button onClick={() => setLocale(locale === "en" ? "zh" : "en")} className="language-toggle" aria-label={locale === "en" ? "切换到中文" : "Switch to English"}><span className={locale === "en" ? "active" : ""}>EN</span><span className={locale === "zh" ? "active" : ""}>中</span></button></div>
         <div className="hidden self-stretch py-1 xl:block"><div className="flex items-start justify-end gap-4"><Search className="mt-2 size-5 text-[var(--dash-fg-2)]" /><div className="flex items-start gap-3"><span className="size-8 rounded-full bg-[radial-gradient(circle_at_55%_40%,#7e8d86_0_25%,#574934_28%_55%,#202a30_58%)]" /><span className="text-[11px] leading-4 text-[var(--dash-fg-3)]">{locale === "zh" ? <>打造你想要的<br />人生。</> : <>Build the life<br />you want.</>}</span></div></div><div className="mt-3 rounded-[10px] bg-[var(--dash-surface-deep)] px-5 py-4 text-[11px] leading-5 text-[var(--dash-fg-3)]">{locale === "zh" ? <>每天进步一点点&nbsp; —<br />终会积少成多。</> : <>A little progress each day&nbsp; —<br />adds up to big results.</>}</div></div>
       </header>
       <div className="top-metrics-grid">
@@ -373,10 +398,10 @@ export function ReferenceDashboard({ data }: { data: DashboardData }) {
       </div>
       <div className="middle-grid">
         <Panel className="contribution-card"><div className="flex items-center justify-between"><div className="flex items-center gap-4"><h2 className="text-[18px] font-semibold text-[var(--dash-fg)]">{locale === "zh" ? "贡献记录" : "Contribution"}</h2><div className="dash-tabs">{(["all", "learning", "english", "coding", "productivity", "fitness"] as HeatFilter[]).map((key) => <button key={key} onClick={() => setHeatFilter(key)} className={heatFilter === key ? "active" : ""}>{locale === "zh" ? ({ all: "全部", learning: "学习", english: "英语", coding: "编程", productivity: "效率", fitness: "健身" }[key]) : ({ all: "All", learning: "Study", english: "English", coding: "Coding", productivity: "Career", fitness: "Fitness" }[key])}</button>)}</div></div><div className="flex items-center gap-3 text-[12px]">
-  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i > 0) setHeatYear(data.heatmap.availableYears[i - 1]); }} disabled={data.heatmap.availableYears.indexOf(heatYear) <= 0} aria-label={locale === "zh" ? "上一年" : "Previous year"} className="disabled:opacity-30"><ChevronLeft className="size-4" /></button>
+  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i > 0) { setHeatYear(data.heatmap.availableYears[i - 1]); setSelectedDate(null); } }} disabled={data.heatmap.availableYears.indexOf(heatYear) <= 0} aria-label={locale === "zh" ? "上一年" : "Previous year"} className="disabled:opacity-30"><ChevronLeft className="size-4" /></button>
   <span className="rounded-[8px] border border-[var(--dash-border)] px-4 py-1.5">{heatYear}</span>
-  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i < data.heatmap.availableYears.length - 1) setHeatYear(data.heatmap.availableYears[i + 1]); }} disabled={data.heatmap.availableYears.indexOf(heatYear) >= data.heatmap.availableYears.length - 1} aria-label={locale === "zh" ? "下一年" : "Next year"} className="disabled:opacity-30"><ChevronRight className="size-4" /></button>
-</div></div><Heatmap years={data.heatmap.years} availableYears={data.heatmap.availableYears} currentYear={data.heatmap.currentYear} year={heatYear} stats={data.heatmapStats} filter={heatFilter} locale={locale} /></Panel>
+  <button onClick={() => { const i = data.heatmap.availableYears.indexOf(heatYear); if (i < data.heatmap.availableYears.length - 1) { setHeatYear(data.heatmap.availableYears[i + 1]); setSelectedDate(null); } }} disabled={data.heatmap.availableYears.indexOf(heatYear) >= data.heatmap.availableYears.length - 1} aria-label={locale === "zh" ? "下一年" : "Next year"} className="disabled:opacity-30"><ChevronRight className="size-4" /></button>
+</div></div><Heatmap years={data.heatmap.years} currentYear={data.heatmap.currentYear} year={heatYear} stats={data.heatmapStats} filter={heatFilter} locale={locale} selectedDate={selectedDate} onSelectDate={setSelectedDate} /></Panel>
         <TodayCard items={data.today} completion={data.todayCompletion} action={data.nextAction} locale={locale} />
       </div>
       <div className="bottom-grid"><MeVsMe windows={data.meVsMe} locale={locale} /><GoalsCard progress={data.progress} locale={locale} /><InsightsCard insight={data.insight} trends={data.trends} gaps={data.gaps} locale={locale} /></div>

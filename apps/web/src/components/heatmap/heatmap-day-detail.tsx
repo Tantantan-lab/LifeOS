@@ -27,7 +27,6 @@ export function HeatmapDayDetail({
   const zh = locale === "zh";
   const dateLabel = zh ? formatDateLongZh(day.date) : formatDateLong(day.date);
   const fmtDuration = (m: number) => (zh ? zhValue(formatDuration(m)) : formatDuration(m));
-  const weekSuffix = t(locale, " this week");
 
   return (
     <div
@@ -60,14 +59,10 @@ export function HeatmapDayDetail({
           const valueLabel = zh
             ? cell.value === 0
               ? `无${label}记录`
-              : meta.goalMode === "trailing7"
-                ? `${cell.displayValue} ${t(locale, meta.unit)}${weekSuffix}`
-                : `${cell.displayValue} ${t(locale, meta.unit)}`
+              : `${cell.displayValue} ${t(locale, meta.unit)}`
             : cell.value === 0
               ? noLogged(meta.label)
-              : meta.goalMode === "trailing7"
-                ? `${cell.displayValue} ${meta.unit} this week`
-                : `${cell.displayValue} ${meta.unit}`;
+              : `${cell.displayValue} ${meta.unit}`;
           return (
             <div
               key={domain}

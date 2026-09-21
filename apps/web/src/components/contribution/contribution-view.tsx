@@ -86,7 +86,7 @@ export function ContributionView({
           <ul className="mt-4 space-y-2.5 text-sm text-fg-secondary">
             <li>{t(locale, "Intensity is completion against your daily goal — not raw volume.")}</li>
             <li>{t(locale, "Capped at 100%: studying 16h is never darker than 8h.")}</li>
-            <li>{t(locale, "Coding and productivity compare the trailing 7 days to their weekly goals.")}</li>
+            <li>{t(locale, "Coding, productivity and fitness compare the day's value to their weekly goals.")}</li>
             <li>{t(locale, "Health is excluded: sleep targets a band, not a floor.")}</li>
           </ul>
         </Panel>

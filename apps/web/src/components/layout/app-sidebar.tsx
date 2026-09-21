@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/layout/nav-item";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { DEMO_MODE } from "@/lib/demo";
 
 type NavEntry = { href: string; label: string; labelZh: string; icon: LucideIcon };
 
@@ -85,6 +86,11 @@ export function AppSidebar() {
         <div className="flex items-center justify-between px-4 pt-3">
           <div className="text-h2 font-semibold tracking-tight">LifeOS</div>
         </div>
+        {DEMO_MODE && (
+          <div className="mx-3 mb-1 rounded-full border border-border px-3 py-1 text-center text-micro text-fg-muted">
+            {locale === "zh" ? "演示数据 · 非真实" : "Demo data · not real"}
+          </div>
+        )}
         <nav
           aria-label="Primary"
           className="flex gap-1 overflow-x-auto px-3 py-2 text-sm"

@@ -3,7 +3,7 @@
 const { spawn } = require("node:child_process");
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const BASE = "http://localhost:3000";
+const BASE = process.env.DEMO_BASE || "http://localhost:8090/LifeOS";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

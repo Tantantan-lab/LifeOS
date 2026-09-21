@@ -13,8 +13,8 @@ export type Domain =
 
 /**
  * Heatmap facets. Sleep stays excluded (band target — not "more is
- * better"); workouts are a facet of their own with a trailing-7 weekly
- * goal since real Xunji data arrived.
+ * better"); workouts are a facet of their own with a weekly goal —
+ * cells measure the DAY against it (a rest day renders empty).
  */
 export type HeatmapDomain =
   | "learning"
@@ -106,7 +106,7 @@ export interface InsightTrendRow {
   delta30: number;
   delta90: number;
   trend90: Trend;
-  /** has_real_data / mock_only / no_data — the LLM-facing honesty flag. */
+  /** has_real_data / mock_only / no_data — the model-facing honesty flag. */
   dataState: "has_real_data" | "mock_only" | "no_data";
 }
 
@@ -137,7 +137,8 @@ export interface HeatmapDayCell {
   level: Level;
   /** Raw value of the cell's metric that day (0 when nothing logged). */
   value: number;
-  /** Value shown in the tooltip (trailing-7-day count for weekly-goal domains). */
+  /** Value shown in the tooltip — the day's own value (was a trailing-7
+   * count before cells switched to day-value semantics). */
   displayValue: number | null;
 }
 
@@ -266,11 +267,6 @@ export interface HeatmapStats {
   }[];
 }
 
-export interface InsightPreview {
-  title: string;
-  body: string;
-}
-
 /** A stored AI insight (insights table). */
 export interface InsightRecord {
   period: "week" | "month";
@@ -279,5 +275,21 @@ export interface InsightRecord {
   provider: string;
   model: string;
   createdAt: string;
-  content: { fact: string; trend: string; gap: string; action: string };
+  /** Bilingual pairs — the pipeline templates en/zh twins; components pick
+   * by locale. Legacy rows hold plain strings; `pickInsightText` handles
+   * both shapes at runtime. */
+  content: {
+    fact: InsightText;
+    trend: InsightText;
+    gap: InsightText;
+    action: InsightText;
+  };
+}
+
+/** One insight sentence in both languages — pre-006 rows held plain strings. */
+export type InsightText = string | { en: string; zh: string };
+
+/** Locale-aware pick for insight content — tolerates legacy string rows. */
+export function pickInsightText(c: InsightText, zh: boolean): string {
+  return typeof c === "string" ? c : zh ? c.zh : c.en;
 }

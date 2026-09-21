@@ -1,8 +1,9 @@
 # LifeOS API
 
-Connector engine + AI insights (FastAPI). The web app keeps reading Postgres
-directly — this service owns **writes** (connector sync) and **generation**
-(AI insights). Bound to 127.0.0.1:8000 by compose, like everything else.
+Connector engine + TypeSafe insights (FastAPI). The web app keeps reading
+Postgres directly — this service owns **writes** (connector sync) and
+**generation** (insights). Bound to 127.0.0.1:8000 by compose, like
+everything else.
 
 ## Credentials
 
@@ -15,7 +16,7 @@ Copy `.env.example` to `.env` and fill the tokens. Tokens live ONLY in
 | WeRead | https://weread.qq.com/r/weread-skills — scan QR, create a `wrk-` key |
 | Maimemo | App: 墨墨背单词 → 开放API → copy token (7-day expiry) |
 | TickTick | Developer app (dida365 developer platform), then `npm run ticktick:auth` |
-| LLM (DeepSeek) | platform.deepseek.com → API key |
+| TypeSafe (Jev) | https://console.typesafe.ai/keys → API key (`TYPESAFE_API_KEY`) |
 
 ## Commands (from repo root)
 
@@ -26,7 +27,7 @@ npm run sync          # sync every connector (all)
 npm run sync:github   # one connector
 npm run sync:dry      # print what WOULD be written (no DB writes)
 npm run test:api      # pytest (fixture-driven, no tokens needed)
-npm run insights      # generate the weekly insight (needs LLM_API_KEY)
+npm run insights      # generate the weekly insight (needs TYPESAFE_API_KEY)
 ```
 
 Host development (no Docker):
@@ -52,3 +53,12 @@ uvicorn app.main:app --reload
 - **TickTick seam**: the official Open API has no focus-time endpoint, so
   productivity uses completed tasks/day; `productivity.focus.minutes` is
   reserved.
+- **Insights are selected, not generated**: `candidates.py` renders every
+  sentence from the summary's own numbers (no_data domains excluded,
+  mock_only sentences marked "(sample history)") as aligned **en/zh pairs**.
+  One TypeSafe call asks up to four Choice questions whose criteria keys ARE
+  the English candidate sentences; the chosen key is stored verbatim as
+  `content.fact/trend/gap/action`, each field an `{en, zh}` pair (the web
+  picks by locale, `pickInsightText` tolerates legacy string rows). The audit
+  trail — options, choice, probabilities, confidence, model, usage — lands in
+  `insights.meta`.

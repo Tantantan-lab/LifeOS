@@ -15,7 +15,6 @@ import {
   DATASET_START,
   DOMAIN_META,
   FITNESS_HEATMAP,
-  HEATMAP_META,
   GAP_PACE_POINTS_PER_WEEK,
   GOAL_ROWS,
   HEATMAP_DOMAINS,
@@ -26,7 +25,7 @@ import {
   WINDOWS,
   WINDOW_ORDER,
 } from "@/data/constants";
-import { getEvents, getLatestInsight } from "@/data/db";
+import { getEvents, getLatestInsight, getLatestInsightMeta } from "@/data/db";
 import type {
   DataSourceRow,
   Domain,
@@ -39,7 +38,6 @@ import type {
   HeatmapDayCell,
   HeatmapDomain,
   HeatmapStats,
-  InsightPreview,
   InsightTrendRow,
   Level,
   LifeEvent,
@@ -54,7 +52,7 @@ import type {
 } from "@/data/types";
 import { getDataSources as getDataSourcesDb } from "@/data/db";
 import { addDays, daysBetween, formatDateLong, formatRange, sundayOnOrBefore } from "@/lib/dates";
-import { formatCount, formatDuration, formatHours1, formatMonthDay, formatTime } from "@/lib/format";
+import { deltaPctOf, formatCount, formatDuration, formatHours1, formatMonthDay, formatTime } from "@/lib/format";
 import { SOURCE_LABELS } from "@/lib/copy";
 import { LIFEOS_TIMEZONE, todayKey } from "@/lib/today";
 
@@ -252,20 +250,21 @@ export function levelOf(completion: number): Level {
   return 4; // 80-100%
 }
 
-/** Completion vs goal, capped at 100% — 16h is never darker than 8h. */
+/** Completion vs goal, capped at 100% — 16h is never darker than 8h.
+
+ * Weekly-goal cells measure the DAY against the weekly goal ("did this day
+ * carry its share?"), not a trailing-7 pace — a day with no workout is an
+ * empty cell. */
 function completionForDomain(idx: EventIndex, domain: HeatmapDomain, dateKey: string): number {
   if (domain === "fitness") {
-    const total = sumMetric(
-      idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(dateKey, -6), dateKey
-    );
-    return Math.min(1, total / FITNESS_HEATMAP.weeklyGoal);
+    const value = metricValueOn(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, dateKey);
+    return Math.min(1, value / FITNESS_HEATMAP.weeklyGoal);
   }
   const meta = DOMAIN_META[domain];
   if (meta.goalMode === "day") {
     return Math.min(1, domainValueOn(idx, domain, dateKey) / meta.dayGoal);
   }
-  const total = sumMetric(idx, domain, meta.primaryMetric, addDays(dateKey, -6), dateKey);
-  return Math.min(1, total / (meta.weeklyGoal ?? 1));
+  return Math.min(1, domainValueOn(idx, domain, dateKey) / (meta.weeklyGoal ?? 1));
 }
 
 /** Per-heatmap-facet value for a day (fitness reads the workout metric). */
@@ -300,17 +299,6 @@ function trendOf(deltaPct: number, epsilon = 3): Trend {
   if (deltaPct > epsilon) return "improving";
   if (deltaPct < -epsilon) return "declining";
   return "stable";
-}
-
-function deltaPctOf(now: number, then: number): number {
-  if (then <= 0) return now > 0 ? 100 : 0;
-  // A negligible baseline (e.g. 2 min of history) makes the % explode —
-  // +13850% is noise, not evidence. Report the same "new data" signal
-  // (+100%) already used for a zero baseline.
-  if (then < now * 0.01) return 100;
-  // Above ~10x the percentage stops meaning anything to a reader; the
-  // trend word and sparkline carry the real shape.
-  return Math.max(-999, Math.min(999, ((now - then) / then) * 100));
 }
 
 const PREV_OFFSETS = {
@@ -437,9 +425,8 @@ export async function getHeatmapData(): Promise<{
     const yearEnd = `${year}-12-31`;
     const days: HeatmapDay[] = [];
     for (let d = yearStart; daysBetween(d, yearEnd) >= 0; d = addDays(d, 1)) {
-      // Future days render as empty cells — trailing-7 windows would
-      // otherwise leak real history into days that haven't happened yet.
-      // daysBetween(a, b) = b − a, so future is > 0.
+      // Future days render as empty cells — no metric may leak into days
+      // that haven't happened yet. daysBetween(a, b) = b − a, so future is > 0.
       if (daysBetween(today, d) > 0) {
         const empty: HeatmapDayCell = { completion: 0, level: 0, value: 0, displayValue: 0 };
         days.push({
@@ -459,17 +446,9 @@ export async function getHeatmapData(): Promise<{
       const cells = {} as Record<HeatmapDomain, HeatmapDayCell>;
       for (const domain of HEATMAP_DOMAINS) {
         const completion = completionForDomain(idx, domain, d);
-        const meta = HEATMAP_META[domain];
         const value = heatmapValueOn(idx, domain, d);
-        const displayValue =
-          meta.goalMode === "trailing7"
-            ? completionForDomain(idx, domain, d) === 0
-              ? 0
-              : domain === "fitness"
-                ? sumMetric(idx, FITNESS_HEATMAP.domain, FITNESS_HEATMAP.metric, addDays(d, -6), d)
-                : sumMetric(idx, domain, DOMAIN_META[domain].primaryMetric, addDays(d, -6), d)
-            : value;
-        cells[domain] = { completion, level: levelOf(completion), value, displayValue };
+        // Day-value semantics: the tooltip shows the day's own number.
+        cells[domain] = { completion, level: levelOf(completion), value, displayValue: value };
       }
       const completionAll = completionAllOn(idx, d, active);
       streakCarry = hasAnyEvent(idx, d) ? streakCarry + 1 : 0;
@@ -723,6 +702,44 @@ export async function getGoals(): Promise<GoalRow[]> {
   });
 }
 
+/* ---- Home activity cards (date-driven) ---- */
+
+/** Per-day raw values for the five home activity cards. */
+export interface CardSeries {
+  study: number;
+  english: number;
+  fitness: number;
+  coding: number;
+  sleep: number;
+}
+
+/** dateKey → the five card values. The client computes a selected day's
+ * cards locally from this series — clicking a heatmap cell or shifting the
+ * date never needs an extra round-trip. Walks every day from the earliest
+ * event year's Jan 1 to today, zero-filling days with no events. */
+export async function getCardSeries(): Promise<Record<string, CardSeries>> {
+  const idx = await getEventIndex();
+  const today = todayKey();
+  let earliestYear = Number(today.slice(0, 4));
+  for (const dayMap of idx.byDomainDate.values()) {
+    for (const dateKey of dayMap.keys()) {
+      const y = Number(dateKey.slice(0, 4));
+      if (y < earliestYear) earliestYear = y;
+    }
+  }
+  const series: Record<string, CardSeries> = {};
+  for (let d = `${earliestYear}-01-01`; daysBetween(d, today) >= 0; d = addDays(d, 1)) {
+    series[d] = {
+      study: metricValueOn(idx, "learning", "learning.study.minutes", d),
+      english: metricValueOn(idx, "english", "english.words.reviewed", d),
+      fitness: metricValueOn(idx, "health", "health.workout.session", d),
+      coding: metricValueOn(idx, "coding", "coding.commits", d),
+      sleep: metricValueOn(idx, "health", "health.sleep.minutes", d),
+    };
+  }
+  return series;
+}
+
 /* ---- Heatmap stats ---- */
 
 export async function getHeatmapStats(): Promise<HeatmapStats> {
@@ -869,61 +886,6 @@ export async function getInsight(period: "week" | "month") {
   return getLatestInsight(period);
 }
 
-export interface InsightsPreviewResult {
-  /** AI-generated items when live; the M1 sample cards otherwise. */
-  items: InsightPreview[];
-  live: boolean;
-  meta: import("@/data/types").InsightRecord | null;
-}
-
-export async function getInsightsPreview(): Promise<InsightsPreviewResult> {
-  const insight = await getLatestInsight("week");
-  if (insight) {
-    return {
-      live: true,
-      meta: insight,
-      items: [
-        { title: "FACT", body: insight.content.fact },
-        { title: "GAP", body: insight.content.gap },
-        { title: "ACTION", body: insight.content.action },
-      ],
-    };
-  }
-
-  const idx = await getEventIndex();
-  const today = todayKey();
-  const last90 = windowRange(PREV_OFFSETS.last90, today);
-  const prev90 = windowRange(PREV_OFFSETS.prev90, today);
-  const studyNow = sumMetric(idx, "learning", "learning.study.minutes", last90.from, last90.to);
-  const studyThen = sumMetric(idx, "learning", "learning.study.minutes", prev90.from, prev90.to);
-  const studyDelta = deltaPctOf(studyNow, studyThen);
-
-  const sleepAvg = sumMetric(idx, "health", "health.sleep.minutes", last90.from, last90.to) / 90;
-  const sleepLine =
-    sleepAvg >= 390 && sleepAvg <= 450
-      ? `Sleep averaged ${formatDuration(sleepAvg)} — within your 6.5–7.5h band.`
-      : `Sleep averaged ${formatDuration(sleepAvg)} — slightly outside your 6.5–7.5h band.`;
-
-  return {
-    live: false,
-    meta: null,
-    items: [
-      {
-        title: "Study trend",
-        body:
-          studyDelta >= 3
-            ? `Study improved ${Math.round(studyDelta)}% over the last 90 days — the strongest trend in your data.`
-            : "Study has held steady over the last 90 days.",
-      },
-      { title: "Sleep", body: sleepLine },
-      {
-        title: "IELTS Writing",
-        body: "IELTS Writing sits below target. 3× 40-min sessions per week would close the gap in about a month.",
-      },
-    ],
-  };
-}
-
 /* ---- Next Best Action / header status / data sources ---- */
 
 /** Today's overall goal completion (data-aware mean) — the Daily Goal ring. */
@@ -1038,7 +1000,8 @@ export async function getHeaderStatus(): Promise<HeaderStatus> {
   // Combined primary+extra metrics per domain — reading counts as learning.
   let total = 0;
   let n = 0;
-  let top: { label: string; deltaPct: number } | null = null;
+  let fallbackTop: { label: string; deltaPct: number } | null = null;
+  const deltas: Partial<Record<Domain, number>> = {};
   for (const domain of Object.keys(DOMAIN_META) as Domain[]) {
     const meta = DOMAIN_META[domain];
     const sumAll = (from: string, to: string) =>
@@ -1052,9 +1015,19 @@ export async function getHeaderStatus(): Promise<HeaderStatus> {
     const delta = deltaPctOf(now, then);
     total += delta;
     n++;
-    if (!top || Math.abs(delta) > Math.abs(top.deltaPct)) {
-      top = { label: meta.label, deltaPct: delta };
+    deltas[domain] = delta;
+    if (!fallbackTop || Math.abs(delta) > Math.abs(fallbackTop.deltaPct)) {
+      fallbackTop = { label: meta.label, deltaPct: delta };
     }
+  }
+  // The header's featured domain is Jev's editorial pick (insights meta.top);
+  // the delta itself stays LIVE from the windows above — only the choice is
+  // stored. Missing/unknown pick falls back to the largest |delta|.
+  let top = fallbackTop;
+  const insightMeta = await getLatestInsightMeta();
+  const chosen = (insightMeta?.top as { choice?: unknown } | undefined)?.choice;
+  if (typeof chosen === "string" && chosen in DOMAIN_META && deltas[chosen as Domain] != null) {
+    top = { label: DOMAIN_META[chosen as Domain].label, deltaPct: deltas[chosen as Domain]! };
   }
   const avgDelta = n > 0 ? total / n : 0;
   const state: HeaderStatus["state"] =

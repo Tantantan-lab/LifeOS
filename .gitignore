@@ -8,3 +8,9 @@ out/
 apps/api/.env
 .venv/
 apps/api/.tokens.json
+# Local tooling — machine-specific, not part of the product
+.claude/
+.agents/
+skills-lock.json
+__pycache__/
+*.pyc

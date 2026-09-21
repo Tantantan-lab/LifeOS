@@ -78,10 +78,18 @@ only domains with data in the trailing 30 days.
 
 `analytics.py` computes a structured summary (period + 90d deltas, goal
 completion, per-domain `data_state`: has_real_data / mock_only / no_data
-via the conn: prefix) → prompt enforces FACT/TREND/GAP/ACTION + banned
-words + verbatim numbers → OpenAI-compatible LLM (DeepSeek default) →
-validated → upserted into `insights` (unique per user+period+period_start).
-The LLM never reads raw events and never presents demo numbers as real.
+via the conn: prefix) → `candidates.py` renders candidate sentences from
+the summary's own numbers (no_data domains produce zero candidates, mock_only
+sentences carry "(sample history)") → one batched TypeSafe System One call
+(`state` = the summary, one Choice question per field, criteria keys ARE the
+candidate sentences) → the chosen key is stored verbatim as flat
+`content.fact/trend/gap/action`, each field an `{en, zh}` pair (the zh twin
+comes from the same template index — Jev picks en only, code maps zh); the
+selection audit trail (options, choice, probabilities, confidence, model,
+usage) lands in `insights.meta` (migration 006). Jev never sees a missing
+domain as an option and never writes a character of user-visible text. The
+summary carries `period_avg` and
+`prev90_total` so every templated number is traceable to it.
 
 ## Determinism (M1 mock)
 
@@ -103,9 +111,11 @@ The LLM never reads raw events and never presents demo numbers as real.
 
 ## Heatmap completion rules
 
-- study / english: `min(1, value / dayGoal)`.
-- fitness / coding: `min(1, trailing7 / weeklyGoal)` — a weekly goal on a
-  daily cell needs a trailing window.
+- study / english: `min(1, dayValue / dayGoal)`.
+- fitness / coding / productivity (weekly goals): `min(1, dayValue / weeklyGoal)`
+  — the cell measures the DAY ("did this day carry its share?"); a rest day
+  renders empty. (M1 used a trailing-7 pace; switched to day-value 2026-09-21
+  — a colored cell on a no-workout day read as a lie.)
 - All view: mean of the four domain completions (sleep excluded).
 - Levels: 0% / 1–25 / 25–50 / 50–80 / 80–100, **capped at 100%**.
 

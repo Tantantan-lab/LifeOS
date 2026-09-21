@@ -41,11 +41,12 @@ Supabase (PostgreSQL · Auth · RLS · Storage)
         │
 Connectors (GitHub / Apple Health / Calendar / Anki / Hevy / Gmail / Finance / Manual)
         │  → Event Queue → Normalize → PostgreSQL
-Analytics Engine → structured summary JSON → LLM → FACT / TREND / GAP / ACTION
+Analytics Engine → structured summary JSON → candidate sentences → TypeSafe Choice → FACT / TREND / GAP / ACTION
 ```
 
-The AI never reads raw events — the analytics engine precomputes a
-structured summary, which keeps the LLM grounded in numbers.
+Jev never reads raw events and never writes user-visible text — the analytics
+engine precomputes a structured summary, `candidates.py` renders sentences
+from its numbers, and TypeSafe Choice just selects one per field.
 
 ## Monorepo layout
 
@@ -57,7 +58,7 @@ apps/web/Dockerfile multi-stage build, standalone runner
 apps/web/scripts    migrate.ts + seed.ts + cdp-check.cjs (tsx / node)
 apps/api            FastAPI — connector engine + AI insights (M3)
 apps/api/app        connectors/{github,weread,maimemo,ticktick}.py, sync CLI,
-                    analytics → llm → insights pipeline
+                    analytics → candidates → typesafe → insights pipeline
 apps/api/scripts    — (auth helper lives in app/ticktick_auth.py)
 packages/ui         shared design system, extracted from apps/web (M4)
 packages/analytics  aggregations / trends / gap math (M4)
@@ -79,7 +80,7 @@ docs                this directory
 |---|---|---|
 | M1 | UI: Home / Contribution / Me vs Me / Goals + design system, deterministic mock data | ✅ done |
 | M2 | Database: users / events / goals / metrics / data_sources on one plain Postgres container (sub2api-style), seeded 365-day history, read path switched to the DB, private-by-default via localhost-only binding | ✅ done |
-| M3 | Five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick, all official APIs), AI insights pipeline (analytics summary → DeepSeek → FACT/TREND/GAP/ACTION), real "today" | ✅ done (live syncs pending the user's credentials) |
+| M3 | Five-domain taxonomy (learning/english/coding/health/productivity), connector engine (GitHub + WeRead + Maimemo + TickTick, all official APIs), AI insights pipeline (analytics summary → TypeSafe Choice (Jev) → FACT/TREND/GAP/ACTION), real "today" | ✅ done (live syncs pending the user's credentials) |
 | M4 | Interaction gaps from the Master UI Prompt: Next Best Action (with reason), Heatmap Day Detail, Dashboard Header, Daily Goal ring, Data Sources page | ✅ done |
 | M5 | Decision Interface: NBA main card with Start timer → manual Event → loop re-derivation; Level badge + skill statuses; Insights 4-tab; Theme switch (System/Dark/Light) | ✅ done |
 | M6 | Finance / Nutrition domains, Health page, more connectors | next |

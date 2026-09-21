@@ -6,8 +6,8 @@ import { Play, Square, Check } from "lucide-react";
 import type { NextBestAction } from "@/data/types";
 import { Panel } from "@/components/primitives/panel";
 import { DomainDot } from "@/components/primitives/domain-chip";
-import { logSession } from "@/app/actions/log-session";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { logSessionNow } from "@/lib/log-session-client";
 import { t, zhValue } from "@/lib/i18n";
 import { formatPct } from "@/lib/format";
 
@@ -51,7 +51,7 @@ export function NextActionCard({ action }: { action: NextBestAction }) {
   async function complete() {
     setSaving(true);
     try {
-      await logSession(action.metric, action.domain, Math.max(1, Math.round(elapsed / 60)));
+      await logSessionNow(action.metric, action.domain, Math.max(1, Math.round(elapsed / 60)));
       router.refresh();
     } finally {
       setSaving(false);

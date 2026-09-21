@@ -13,6 +13,14 @@
 import "server-only";
 import { connection } from "next/server";
 import { Pool } from "pg";
+import { USER_ID } from "@/data/constants";
+import {
+  DEMO_DATA_SOURCES,
+  DEMO_INSIGHTS,
+  DEMO_INSIGHT_META,
+  getDemoEvents,
+} from "@/data/demo-data";
+import { DEMO_MODE } from "@/lib/demo";
 import type { InsightRecord, LifeEvent, Domain } from "@/data/types";
 
 let pool: Pool | null = null;
@@ -31,6 +39,7 @@ function db(): Pool {
 
 /** Single-user M2: the one seeded owner row. */
 export async function resolveOwnerUserId(): Promise<string> {
+  if (DEMO_MODE) return USER_ID; // demo: the mock owner, no DB
   await connection();
   const { rows } = await db().query(
     "select id from users order by created_at asc limit 1"
@@ -95,6 +104,7 @@ const CONNECTOR_SOURCES = new Set(["github", "weread", "maimemo", "ticktick"]);
 export async function getDataSources(): Promise<
   import("@/data/types").DataSourceRow[]
 > {
+  if (DEMO_MODE) return DEMO_DATA_SOURCES;
   await connection();
   const userId = await resolveOwnerUserId();
   const { rows } = await db().query(
@@ -151,6 +161,7 @@ export async function insertManualEvent(input: {
 export async function getLatestInsight(
   period: "week" | "month"
 ): Promise<InsightRecord | null> {
+  if (DEMO_MODE) return DEMO_INSIGHTS[period]; // snapshot, no DB
   await connection();
   const userId = await resolveOwnerUserId();
   const { rows } = await db().query(
@@ -175,6 +186,24 @@ export async function getLatestInsight(
   };
 }
 
+/** Latest insight's meta (any period) — carries Jev's editorial picks,
+ * e.g. meta.top = the header's "clearest trend" domain choice. */
+export async function getLatestInsightMeta(): Promise<Record<string, unknown> | null> {
+  if (DEMO_MODE) return DEMO_INSIGHT_META;
+  await connection();
+  const userId = await resolveOwnerUserId();
+  const { rows } = await db().query(
+    `select meta
+       from insights
+      where user_id = $1
+      order by created_at desc, period desc
+      limit 1`,
+    [userId]
+  );
+  if (rows.length === 0) return null;
+  return (rows[0].meta as Record<string, unknown>) ?? null;
+}
+
 /**
  * No cache here: the selectors-level event index is the single dedup
  * point (60s TTL there), and scheduled connector syncs write to Postgres
@@ -182,6 +211,8 @@ export async function getLatestInsight(
  * lifetime (the M2 production cache did exactly that).
  */
 export function getEvents(): Promise<LifeEvent[]> {
+  // Demo: the deterministic generator IS the event stream — no DB at all.
+  if (DEMO_MODE) return Promise.resolve(getDemoEvents());
   const userId = resolveOwnerUserId();
   return userId.then(fetchAllEvents);
 }

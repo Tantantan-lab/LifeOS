@@ -6,6 +6,12 @@
   }
   html {
     color-scheme: light;
+    /* html owns the page background too — without this, body's background
+     * is promoted to the root canvas, and toggling html.dark can leave that
+     * root layer stale until a full repaint (real-Chrome only; headless
+     * compositor doesn't reproduce). Keeping it on html as well forces the
+     * normal element-repaint path on every class flip. */
+    background: var(--color-bg);
   }
   html.dark {
     color-scheme: dark;

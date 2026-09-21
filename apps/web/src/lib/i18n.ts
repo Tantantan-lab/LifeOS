@@ -45,7 +45,6 @@ const ZH: Record<string, string> = {
   More: "多",
   "Intensity = % of that day's goal · capped at 100%":
     "强度 = 当日目标完成率 · 100% 封顶",
-  " this week": "本周",
   "4-domain average": "四域平均",
   "reading · english · coding · productivity": "阅读 · 英语 · 编程 · 效率",
   " · 0.95 confidence": " · 置信度 0.95",
@@ -72,8 +71,8 @@ const ZH: Record<string, string> = {
     "强度 = 当日目标完成率——不是原始投入量。",
   "Capped at 100%: studying 16h is never darker than 8h.":
     "100% 封顶：学习 16 小时不会比 8 小时颜色更深。",
-  "Coding and productivity compare the trailing 7 days to their weekly goals.":
-    "编程与效率按近 7 天累计对比周目标。",
+  "Coding, productivity and fitness compare the day's value to their weekly goals.":
+    "编程、效率与训练按当天数值对比周目标。",
   "Health is excluded: sleep targets a band, not a floor.":
     "健康域不参与：睡眠目标是区间，不是下限。",
 

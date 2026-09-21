@@ -24,10 +24,10 @@ class Settings(BaseSettings):
     ticktick_access_token: str = ""
     ticktick_refresh_token: str = ""
 
-    llm_provider: str = "deepseek"
-    llm_base_url: str = "https://api.deepseek.com"
-    llm_api_key: str = ""
-    llm_model: str = "deepseek-flash"
+    # TypeSafe System One (Jev) — insights select sentences, never write them.
+    typesafe_base_url: str = "https://api.typesafe.ai"
+    typesafe_api_key: str = ""
+    typesafe_model: str = "jev-latest"
 
     # Scheduled sync cadence (0 disables the in-process loop).
     sync_interval_minutes: int = 180

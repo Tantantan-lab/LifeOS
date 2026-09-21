@@ -30,7 +30,7 @@ import {
   poisson,
   rngFor,
   uniform,
-} from "@/data/rng";
+} from "./rng";
 
 const DAYS = 365;
 /** daysAgo of each generated day: DAYS-1 … 0 (oldest → mock's last day). */

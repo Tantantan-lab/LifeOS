@@ -1,7 +1,7 @@
 /**
  * LifeOS seed — creates the single owner user, upserts the catalogs
  * (metrics / data_sources / goals) and imports the full deterministic
- * 365-day event dataset from src/data/generator.ts.
+ * 365-day event dataset from scripts/generator.ts.
  *
  * Idempotent: delete-then-insert per owner; safe to run repeatedly.
  * Run from the repo root via `npm run seed` (cwd = apps/web, so the
@@ -12,7 +12,7 @@
  */
 
 import { Pool } from "pg";
-import { generateEvents } from "@/data/generator";
+import { generateEvents } from "./generator";
 import { SOURCE_LABELS } from "@/lib/copy";
 
 const CHUNK = 500;

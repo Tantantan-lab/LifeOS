@@ -18,6 +18,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # no apps/web/node_modules to copy.
 COPY --from=deps /app/node_modules node_modules
 COPY . .
+# The previous builder layer's .next survives COPY (it's dockerignored on
+# the host) and poisons `next build`'s incremental cache — stale chunks
+# have shipped without changed modules. Always build cold.
+RUN rm -rf apps/web/.next
 RUN npm run build --workspace apps/web
 
 # ---- runner: standalone server + static assets ----

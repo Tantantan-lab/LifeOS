@@ -29,5 +29,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = "deepseek-flash"
 
+    # Scheduled sync cadence (0 disables the in-process loop).
+    sync_interval_minutes: int = 180
+
 
 settings = Settings()

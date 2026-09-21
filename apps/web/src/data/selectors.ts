@@ -79,9 +79,16 @@ function buildIndex(events: LifeEvent[]): EventIndex {
 }
 
 let indexPromise: Promise<EventIndex> | null = null;
+let indexBuiltAt = 0;
+// Scheduled connector syncs write to Postgres out-of-band, so the cached
+// index re-reads every minute. The timestamp is cache control only —
+// computed values stay clock-free (no Date math in the data layer).
+const INDEX_TTL_MS = 60_000;
 
 function getEventIndex(): Promise<EventIndex> {
-  indexPromise ??= getEvents()
+  if (indexPromise && Date.now() - indexBuiltAt < INDEX_TTL_MS) return indexPromise;
+  indexBuiltAt = Date.now();
+  indexPromise = getEvents()
     .then(buildIndex)
     .catch((e) => {
       indexPromise = null; // a failed load never poisons the cache

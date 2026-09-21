@@ -143,7 +143,8 @@ export async function insertManualEvent(input: {
       JSON.stringify(input.metadata ?? {}),
     ]
   );
-  cache = null; // next render re-reads the stream
+  // selectors.invalidateEventIndex() (called by logSession) drops the
+  // index cache — the next render re-reads the stream.
 }
 
 /** Latest stored AI insight for a period (null = not generated yet). */
@@ -175,23 +176,12 @@ export async function getLatestInsight(
 }
 
 /**
- * Module-scope cache: one query per server instance in production;
- * re-seeding becomes visible within ~1s in dev. A failed load never
- * poisons the cache.
+ * No cache here: the selectors-level event index is the single dedup
+ * point (60s TTL there), and scheduled connector syncs write to Postgres
+ * out-of-band — a cached read would show stale data for the server's
+ * lifetime (the M2 production cache did exactly that).
  */
-let cache: { at: number; p: Promise<LifeEvent[]> } | null = null;
-const TTL = process.env.NODE_ENV === "production" ? Number.POSITIVE_INFINITY : 1000;
-
 export function getEvents(): Promise<LifeEvent[]> {
-  const now = Date.now();
-  if (cache && now - cache.at < TTL) return cache.p;
-  const p = (async () => {
-    const userId = await resolveOwnerUserId();
-    return fetchAllEvents(userId);
-  })().catch((e) => {
-    cache = null;
-    throw e;
-  });
-  cache = { at: now, p };
-  return p;
+  const userId = resolveOwnerUserId();
+  return userId.then(fetchAllEvents);
 }
